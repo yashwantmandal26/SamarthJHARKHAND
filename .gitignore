@@ -1,0 +1,13 @@
+# Samarth Project GitIgnore
+.env
+*.db
+__pycache__/
+node_modules/
+frontend/.next/
+frontend/node_modules/
+.DS_Store
+.vscode/
+.idea/
+*.log
+venv/
+.venv/

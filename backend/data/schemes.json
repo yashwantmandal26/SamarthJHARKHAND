@@ -1,0 +1,1004 @@
+[
+  {
+    "scheme_id": "sarvajan_pension",
+    "name": "Sarvajan Pension Yojana",
+    "name_hindi": "सर्वजन पेंशन योजना",
+    "department": "Department of Social Security & Welfare, Jharkhand",
+    "category": "social_security",
+    "description": "Universal pension scheme providing monthly financial assistance to vulnerable citizens of Jharkhand, including the elderly, widows, and disabled persons.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "min_age": {
+          "general_male": 60,
+          "sc_st_male": 50,
+          "female": 50
+        },
+        "max_income_annual": null,
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"],
+        "special_conditions": ["widow", "disabled", "hiv_aids", "primitive_tribe", "destitute"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.3, "description": "BPL card holder gets priority" },
+        "not_receiving_other_pension": { "weight": 0.7, "description": "Must not be receiving pension from any other government scheme" }
+      }
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 1000,
+      "currency": "INR",
+      "frequency": "monthly",
+      "description": "₹1,000 per month transferred directly to beneficiary's bank account (DBT)."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "domicile", "name": "Jharkhand Domicile Certificate", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account Details (Aadhaar linked)", "mandatory": true },
+      { "id": "caste_cert", "name": "Caste Certificate", "mandatory": false, "condition": "If applying under SC/ST for early age eligibility" },
+      { "id": "disability_cert", "name": "Disability Certificate (40%+ disability)", "mandatory": false, "condition": "For disabled applicants" }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://jharsewa.jharkhand.gov.in",
+      "offline_steps": [
+        "Collect the form from your Block/Circle office or Panchayat",
+        "Fill in personal and bank details and attach required documents",
+        "Submit to Block Development Officer (BDO) or Circle Officer (CO)"
+      ]
+    },
+    "tags": ["pension", "elderly", "widow", "disabled", "financial assistance", "social security", "monthly income"]
+  },
+  {
+    "scheme_id": "abua_awas",
+    "name": "Abua Awas Yojana",
+    "name_hindi": "अबुआ आवास योजना",
+    "department": "Department of Rural Development, Jharkhand",
+    "category": "housing",
+    "description": "Jharkhand state housing scheme providing financial assistance to build 3-room pucca houses for homeless and kutcha-house-dwelling families.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "housing_status": ["homeless", "kutcha_house"],
+        "pm_awas_beneficiary": false,
+        "categories": ["SC", "ST", "OBC", "General", "Minority"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.5, "description": "Priority to BPL families" },
+        "primitive_tribe": { "weight": 0.8, "description": "High priority for PVTG members" },
+        "disaster_affected": { "weight": 0.7, "description": "Priority to natural disaster victims" }
+      }
+    },
+    "benefits": {
+      "type": "housing",
+      "amount": 200000,
+      "currency": "INR",
+      "frequency": "one_time_installments",
+      "description": "₹2 Lakh in 4 installments for construction of a 3-room pucca house."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "domicile", "name": "Jharkhand Domicile / Resident Certificate", "mandatory": true },
+      { "id": "job_card", "name": "MGNREGA Job Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account Details", "mandatory": true },
+      { "id": "land_record", "name": "Land Records / Patta", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Applications collected at Gram Sabha or 'Aapki Yojana Aapki Sarkar' outreach camps",
+        "Verification done by Block Development Officer",
+        "Funds released in 4 installments upon construction milestones"
+      ]
+    },
+    "tags": ["housing", "home", "pucca house", "rural development", "shelter"]
+  },
+  {
+    "scheme_id": "pmay_gramin",
+    "name": "Pradhan Mantri Awaas Yojana – Gramin (PMAY-G)",
+    "name_hindi": "प्रधानमंत्री आवास योजना – ग्रामीण",
+    "department": "Ministry of Rural Development, Government of India",
+    "category": "housing",
+    "description": "Central government scheme to provide pucca houses with basic amenities to houseless families and those living in kutcha/dilapidated houses in rural areas.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "housing_status": ["homeless", "kutcha_house", "dilapidated"],
+        "categories": ["SC", "ST", "OBC", "General", "Minority"],
+        "gender": ["male", "female", "other"],
+        "max_income_annual": null
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.6, "description": "BPL / SECC list families get priority" },
+        "primitive_tribe": { "weight": 0.9, "description": "PVTG families are highest priority" }
+      }
+    },
+    "benefits": {
+      "type": "housing",
+      "amount": 130000,
+      "currency": "INR",
+      "frequency": "one_time_installments",
+      "description": "₹1.30 Lakh for plain areas, ₹1.50 Lakh for hilly/NE states; plus 90 days MGNREGA unskilled wage support."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "job_card", "name": "MGNREGA Job Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true },
+      { "id": "land_record", "name": "Land Ownership Proof / Patta", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmayg.nic.in",
+      "offline_steps": [
+        "Beneficiaries are selected from SECC 2011 data by Gram Sabha",
+        "Verification done at Block office and District office",
+        "Funds released via PFMS directly to bank account"
+      ]
+    },
+    "tags": ["housing", "rural", "pucca house", "central scheme", "PMAY"]
+  },
+  {
+    "scheme_id": "jharkhand_kisan_debt_waiver",
+    "name": "Jharkhand Krishi Rin Mafi Yojana",
+    "name_hindi": "झारखंड कृषि ऋण माफी योजना",
+    "department": "Department of Agriculture, Jharkhand",
+    "category": "agriculture",
+    "description": "Provides relief to small and marginal KCC loan holders by waiving agricultural loans up to ₹2 Lakh.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "loan_type": "Kisan_Credit_Card",
+        "max_loan_amount": 200000,
+        "farmer_type": ["marginal", "small"],
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "debt_waiver",
+      "max_amount": 200000,
+      "currency": "INR",
+      "description": "Waiver of outstanding KCC agricultural loan up to ₹2,00,000 per farmer."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "kcc_passbook", "name": "Kisan Credit Card (KCC) Passbook", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Passbook", "mandatory": true },
+      { "id": "ration_card", "name": "Ration Card", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online"],
+      "online_url": "https://jkrmy.jharkhand.gov.in",
+      "offline_steps": [
+        "Beneficiaries identified by banks from SECC data",
+        "e-KYC at Pragya Kendra (CSC) for Rs. 1 nominal fee"
+      ]
+    },
+    "tags": ["agriculture", "farmer", "loan waiver", "kcc", "kisan", "debt relief"]
+  },
+  {
+    "scheme_id": "pm_kisan",
+    "name": "PM Kisan Samman Nidhi Yojana",
+    "name_hindi": "प्रधानमंत्री किसान सम्मान निधि योजना",
+    "department": "Ministry of Agriculture & Farmers' Welfare, Government of India",
+    "category": "agriculture",
+    "description": "Central government income support scheme providing ₹6,000 per year in three installments to small and marginal farmer families.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "farmer_type": ["marginal", "small"],
+        "max_income_annual": null,
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 6000,
+      "currency": "INR",
+      "frequency": "yearly_3_installments",
+      "description": "₹6,000 per year (₹2,000 every 4 months) directly via DBT to farmer's bank account."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "land_record", "name": "Land Ownership Record (Khatian/ROR)", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmkisan.gov.in",
+      "offline_steps": [
+        "Register through local Patwari / Revenue officer or CSC",
+        "Or self-register at pmkisan.gov.in portal"
+      ]
+    },
+    "tags": ["agriculture", "farmer", "income support", "central scheme", "PM Kisan", "6000"]
+  },
+  {
+    "scheme_id": "mukhyamantri_krishi_ashirwad",
+    "name": "Mukhyamantri Krishi Ashirwad Yojana (MMKAY)",
+    "name_hindi": "मुख्यमंत्री कृषि आशीर्वाद योजना",
+    "department": "Department of Agriculture, Jharkhand",
+    "category": "agriculture",
+    "description": "Jharkhand state scheme providing input subsidy to small and marginal farmers at the beginning of Kharif season for seeds, fertilizers, and farm machinery.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "farmer_type": ["marginal", "small"],
+        "max_land_acres": 5,
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.4, "description": "BPL farmers prioritized" }
+      }
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 25000,
+      "currency": "INR",
+      "frequency": "yearly",
+      "description": "₹5,000 per acre per year, maximum ₹25,000 per family for up to 5 acres."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "land_record", "name": "Land Records (Khatian/ROR)", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://mmkay.jharkhand.gov.in",
+      "offline_steps": [
+        "Register at nearest Pragya Kendra (CSC) or Block Agriculture Office",
+        "Funds credited directly to bank account before Kharif season"
+      ]
+    },
+    "tags": ["agriculture", "farmer", "kharif", "input subsidy", "state scheme", "Jharkhand"]
+  },
+  {
+    "scheme_id": "pm_fasal_bima",
+    "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+    "name_hindi": "प्रधानमंत्री फसल बीमा योजना",
+    "department": "Ministry of Agriculture & Farmers' Welfare, Government of India",
+    "category": "agriculture",
+    "description": "Crop insurance scheme providing financial support to farmers suffering crop loss/damage due to unforeseen events like natural calamities, pests, and diseases.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.3, "description": "Premium waiver for BPL farmers" }
+      }
+    },
+    "benefits": {
+      "type": "insurance",
+      "amount": null,
+      "currency": "INR",
+      "frequency": "on_claim",
+      "description": "Farmer pays only 2% premium for Kharif, 1.5% for Rabi, 5% for commercial crops. Government pays the rest. Full sum insured paid on total crop loss."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "land_record", "name": "Land Records (sown crop area)", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true },
+      { "id": "kcc_passbook", "name": "Kisan Credit Card (if availing loan)", "mandatory": false }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmfby.gov.in",
+      "offline_steps": [
+        "Enroll through your bank (mandatory for loan-taking farmers)",
+        "Non-loan farmers can enroll online at pmfby.gov.in or through CSC"
+      ]
+    },
+    "tags": ["agriculture", "farmer", "crop insurance", "fasal bima", "natural disaster", "central scheme"]
+  },
+  {
+    "scheme_id": "savitribai_phule_kishori",
+    "name": "Savitribai Phule Kishori Samriddhi Yojana",
+    "name_hindi": "सावित्रीबाई फुले किशोरी समृद्धि योजना",
+    "department": "Department of Women and Child Development, Jharkhand",
+    "category": "women",
+    "description": "Financial assistance scheme to promote girls' education, prevent child marriage, and empower adolescent girls in Jharkhand through milestone-based scholarships.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "gender": ["female"],
+        "student_class": [8, 9, 10, 11, 12],
+        "age_range": { "min": 18, "max": 19, "condition": "for lump sum grant" },
+        "unmarried_if_18": true,
+        "categories": ["SC", "ST", "OBC", "General"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "scholarship",
+      "amount": 40000,
+      "currency": "INR",
+      "frequency": "milestones",
+      "description": "Class 8/9: ₹2,500; Class 10/11/12: ₹5,000; On turning 18-19 (unmarried): one-time ₹20,000. Total potential: ₹40,000."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Passbook in girl's name", "mandatory": true },
+      { "id": "school_cert", "name": "School Study Certificate / Bonafide", "mandatory": true },
+      { "id": "birth_cert", "name": "Birth Certificate", "mandatory": true },
+      { "id": "mother_declaration", "name": "Self-declaration by mother/guardian", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Forms available at Anganwadi centres or the school",
+        "Submit completed form with documents to school headmaster or Anganwadi Sevika"
+      ]
+    },
+    "tags": ["girl child", "education", "scholarship", "women empowerment", "child marriage prevention", "kishori"]
+  },
+  {
+    "scheme_id": "mukhyamantri_mahila_uthan",
+    "name": "Mukhyamantri Mahila Kisan Sashaktikaran (MMKSY)",
+    "name_hindi": "मुख्यमंत्री महिला किसान सशक्तिकरण योजना",
+    "department": "Department of Rural Development, Jharkhand",
+    "category": "women",
+    "description": "Empowers rural women farmers through SHG (Self Help Group) network, providing agriculture inputs, training, and market linkage support.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "gender": ["female"],
+        "occupation": ["farmer", "agricultural_labourer"],
+        "categories": ["SC", "ST", "OBC", "General"]
+      },
+      "soft_constraints": {
+        "shg_member": { "weight": 0.8, "description": "Priority if member of Sakhi Mandal / SHG" },
+        "bpl_card": { "weight": 0.5, "description": "BPL families prioritized" }
+      }
+    },
+    "benefits": {
+      "type": "mixed",
+      "amount": 50000,
+      "currency": "INR",
+      "frequency": "one_time_plus_recurring",
+      "description": "Agriculture inputs, Seeds + fertilizers, free training; potential ₹50,000 grant for farm development through JSLPS."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true },
+      { "id": "shg_membership", "name": "SHG / Sakhi Mandal Membership Certificate", "mandatory": false }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Contact your local Sakhi Mandal or JSLPS block coordinator",
+        "Apply through the Jeevika or JSLPS program officer at block level"
+      ]
+    },
+    "tags": ["women", "farmer", "SHG", "sakhi mandal", "empowerment", "agriculture"]
+  },
+  {
+    "scheme_id": "pm_matru_vandana",
+    "name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+    "name_hindi": "प्रधानमंत्री मातृ वंदना योजना",
+    "department": "Ministry of Women and Child Development, Government of India",
+    "category": "women",
+    "description": "Maternity benefit scheme providing cash incentive for partial wage compensation during pregnancy and nursing, and encouraging women to follow best practices.",
+    "eligibility": {
+      "hard_constraints": {
+        "gender": ["female"],
+        "min_age": { "female": 19 },
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC", "General"],
+        "marital_status": ["married"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 5000,
+      "currency": "INR",
+      "frequency": "one_time_installments",
+      "description": "₹5,000 in 3 installments: ₹1,000 on early ANC registration, ₹2,000 after 6-month ANC check, ₹2,000 after child birth registration and first vaccination."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true },
+      { "id": "mcp_card", "name": "Mother and Child Protection (MCP) Card", "mandatory": true },
+      { "id": "marriage_cert", "name": "Marriage Certificate", "mandatory": false }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmmvy.wcd.gov.in",
+      "offline_steps": [
+        "Register at nearest Anganwadi Centre (AWC)",
+        "Submit form with documents to AWC Sevika / Health Sub-centre"
+      ]
+    },
+    "tags": ["women", "maternity", "pregnancy", "maternal benefit", "central scheme", "mother"]
+  },
+  {
+    "scheme_id": "sukanya_samriddhi",
+    "name": "Sukanya Samriddhi Yojana (SSY)",
+    "name_hindi": "सुकन्या समृद्धि योजना",
+    "department": "Ministry of Finance, Government of India",
+    "category": "women",
+    "description": "Savings scheme for the girl child ensuring financial security. Parents/guardians can open an account in the name of a girl child below 10 years.",
+    "eligibility": {
+      "hard_constraints": {
+        "gender": ["female"],
+        "max_age": 10,
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC", "General"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "savings_interest",
+      "amount": null,
+      "currency": "INR",
+      "frequency": "on_maturity",
+      "description": "Current interest rate 8.2% p.a. Minimum ₹250/yr deposit. Maturity at 21 years; partial withdrawal at 18 for education/marriage."
+    },
+    "documents_required": [
+      { "id": "birth_cert", "name": "Birth Certificate of girl child", "mandatory": true },
+      { "id": "aadhaar", "name": "Aadhaar Card of parent/guardian", "mandatory": true },
+      { "id": "address_proof", "name": "Address Proof of parent/guardian", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Visit any Post Office or authorized bank branch (SBI, PNB, etc.)",
+        "Fill SSY account opening form",
+        "Deposit minimum ₹250 to activate the account"
+      ]
+    },
+    "tags": ["girl child", "savings", "education", "marriage", "financial planning", "central scheme"]
+  },
+  {
+    "scheme_id": "mukhyamantri_rojgar_srijan",
+    "name": "Mukhyamantri Rojgar Srijan Yojana (CMEGP)",
+    "name_hindi": "मुख्यमंत्री रोजगार सृजन योजना",
+    "department": "Department of Welfare, Jharkhand",
+    "category": "employment",
+    "description": "Provides subsidized bank loans to youth from marginalized communities to start their own businesses / micro enterprises in Jharkhand.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "min_age": 18,
+        "max_age": 50,
+        "max_income_annual": 500000,
+        "categories": ["SC", "ST", "OBC", "Minority", "Disabled", "Sakhi_Mandal_Women"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "loan_subsidy",
+      "max_amount": 2500000,
+      "currency": "INR",
+      "description": "Loan up to ₹25 Lakh with 40% subsidy (max ₹5 lakh). No guarantor for loans up to ₹50,000."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "domicile", "name": "Jharkhand Domicile Certificate", "mandatory": true },
+      { "id": "caste_cert", "name": "Caste Certificate", "mandatory": true },
+      { "id": "income_cert", "name": "Income Certificate", "mandatory": true },
+      { "id": "project_report", "name": "Project Report of proposed business", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://cmegp.jharkhand.gov.in",
+      "offline_steps": [
+        "Submit application at District Welfare Office / ITDA / Minority Finance Corporation",
+        "Bank reviews and sanctions the loan with subsidy"
+      ]
+    },
+    "tags": ["employment", "business", "loan", "youth", "subsidy", "self-employment", "startup"]
+  },
+  {
+    "scheme_id": "mgnrega",
+    "name": "Mahatma Gandhi NREGA (MGNREGS)",
+    "name_hindi": "महात्मा गांधी राष्ट्रीय ग्रामीण रोजगार गारंटी योजना",
+    "department": "Ministry of Rural Development, Government of India",
+    "category": "employment",
+    "description": "Legal guarantee of 100 days of unskilled manual wage employment per year to rural households whose adult members volunteer to do such work.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "min_age": 18,
+        "occupation": ["agricultural_labourer", "labourer", "farmer", "unemployed"],
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.4, "description": "BPL families prioritized" }
+      }
+    },
+    "benefits": {
+      "type": "wages",
+      "amount": 257,
+      "currency": "INR",
+      "frequency": "daily_per_100_days",
+      "description": "₹257/day wage (Jharkhand rate) for 100 days guaranteed work. Women get 1/3 reservation."
+    },
+    "documents_required": [
+      { "id": "job_card", "name": "MGNREGA Job Card", "mandatory": true },
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": "https://nrega.nic.in",
+      "offline_steps": [
+        "Get/verify your Job Card from Gram Panchayat",
+        "Submit written application for work at Gram Panchayat office",
+        "Work must be provided within 15 days of application"
+      ]
+    },
+    "tags": ["employment", "wages", "rural", "100 days", "NREGA", "labourer", "daily wages"]
+  },
+  {
+    "scheme_id": "pm_vishwakarma",
+    "name": "PM Vishwakarma Yojana",
+    "name_hindi": "पीएम विश्वकर्मा योजना",
+    "department": "Ministry of Micro, Small and Medium Enterprises, Government of India",
+    "category": "employment",
+    "description": "Supports traditional artisans and craftspeople (18 trades) with free skill training, toolkits worth ₹15,000, and collateral-free loans at concessional rates.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "min_age": 18,
+        "occupation": ["artisan", "craftsman", "blacksmith", "goldsmith", "barber", "carpenter", "tailor", "potter", "weaver", "cobbler"],
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "mixed",
+      "amount": 300000,
+      "currency": "INR",
+      "description": "₹15,000 toolkit; Skill training with ₹500/day stipend; Collateral-free loan: ₹1 Lakh (Tranche 1), ₹2 Lakh (Tranche 2) at 5% subsidized interest."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "mobile", "name": "Mobile linked to Aadhaar", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account", "mandatory": true },
+      { "id": "trade_proof", "name": "Proof of traditional trade/occupation", "mandatory": false }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmvishwakarma.gov.in",
+      "offline_steps": [
+        "Register at nearest CSC (Pragya Kendra) with Aadhaar and mobile",
+        "Complete skill training set by NSDC",
+        "Apply for toolkit grant and loan after training"
+      ]
+    },
+    "tags": ["employment", "artisan", "craftsman", "skill", "self-employment", "toolkit", "loan", "PM Vishwakarma"]
+  },
+  {
+    "scheme_id": "prematric_scholarship_sc_st",
+    "name": "Pre-Matric Scholarship for SC/ST Students",
+    "name_hindi": "अनुसूचित जाति/जनजाति छात्रों के लिए प्री-मेट्रिक छात्रवृत्ति",
+    "department": "Department of Welfare, Jharkhand / Ministry of Social Justice",
+    "category": "education",
+    "description": "Scholarship to SC/ST students studying in Classes 9 and 10 to prevent dropout and encourage continuation of education.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST"],
+        "student_class": [9, 10],
+        "max_income_annual": 250000,
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "scholarship",
+      "amount": 3500,
+      "currency": "INR",
+      "frequency": "yearly",
+      "description": "₹3,500/year for day scholars; ₹7,000/year for hostel students. In addition, book grants and maintenance allowance."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "caste_cert", "name": "SC/ST Caste Certificate", "mandatory": true },
+      { "id": "income_cert", "name": "Income Certificate (below ₹2.5 lakh/yr)", "mandatory": true },
+      { "id": "school_cert", "name": "School Enrollment / Bonafide Certificate", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account in student's name", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online"],
+      "online_url": "https://scholarships.gov.in",
+      "offline_steps": [
+        "Apply online on National Scholarship Portal (NSP)",
+        "Institute verifies the application",
+        "Amount disbursed directly to student's account"
+      ]
+    },
+    "tags": ["education", "scholarship", "SC", "ST", "class 9", "class 10", "student"]
+  },
+  {
+    "scheme_id": "postmatric_scholarship",
+    "name": "Post-Matric Scholarship for SC/ST/OBC",
+    "name_hindi": "पोस्ट-मेट्रिक छात्रवृत्ति (अनु. जाति/जनजाति/ओबीसी)",
+    "department": "Ministry of Social Justice / Tribal Affairs, Government of India",
+    "category": "education",
+    "description": "Scholarship for SC/ST/OBC students studying at post-matriculation or post-secondary stage to enable them to complete their education.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC"],
+        "student_class": [11, 12],
+        "max_income_annual": 250000,
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "scholarship",
+      "amount": 12000,
+      "currency": "INR",
+      "frequency": "yearly",
+      "description": "Maintenance allowance + compulsory fees covered. For SC: family income below ₹2.5 lakh; For ST: ₹2.5 lakh; For OBC: ₹1 lakh."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "caste_cert", "name": "Caste Certificate (SC/ST/OBC)", "mandatory": true },
+      { "id": "income_cert", "name": "Family Income Certificate", "mandatory": true },
+      { "id": "marksheet", "name": "Previous Year Marksheet", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account in student's name", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online"],
+      "online_url": "https://scholarships.gov.in",
+      "offline_steps": [
+        "Apply via National Scholarship Portal (NSP) before the deadline",
+        "College/institution verifies and forwards application"
+      ]
+    },
+    "tags": ["education", "scholarship", "SC", "ST", "OBC", "class 11", "class 12", "college", "student"]
+  },
+  {
+    "scheme_id": "chief_minister_merit_scholarship",
+    "name": "Mukhyamantri Medha Chatravriti Yojana",
+    "name_hindi": "मुख्यमंत्री मेधा छात्रवृत्ति योजना",
+    "department": "Department of School Education & Literacy, Jharkhand",
+    "category": "education",
+    "description": "Merit-based scholarship for meritorious students of Class 9 studying in government schools of Jharkhand who passed Class 8 with top scores.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "student_class": [9, 10],
+        "school_type": "government",
+        "max_income_annual": 300000,
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "scholarship",
+      "amount": 12000,
+      "currency": "INR",
+      "frequency": "yearly",
+      "description": "₹12,000/year for students who qualify the state-level merit exam."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "school_cert", "name": "School Certificate / Admission Proof", "mandatory": true },
+      { "id": "marksheet", "name": "Class 8 Marksheet", "mandatory": true },
+      { "id": "income_cert", "name": "Family Income Certificate", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (student or guardian)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Selected through a state-level competitive exam (MMCY Exam)",
+        "Application through school headmaster",
+        "Scholarship paid directly to student's account"
+      ]
+    },
+    "tags": ["education", "scholarship", "merit", "class 9", "government school", "Jharkhand", "student"]
+  },
+  {
+    "scheme_id": "ayushman_bharat_jharkhand",
+    "name": "Ayushman Bharat – Jan Arogya Yojana (AB-PMJAY)",
+    "name_hindi": "आयुष्मान भारत – प्रधानमंत्री जन आरोग्य योजना",
+    "department": "National Health Authority, Government of India",
+    "category": "social_security",
+    "description": "World's largest health insurance scheme providing coverage of ₹5 Lakh per family per year for secondary and tertiary hospitalization at empanelled hospitals.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.9, "description": "BPL/SECC 2011 listed families are primary beneficiaries" }
+      }
+    },
+    "benefits": {
+      "type": "health_insurance",
+      "amount": 500000,
+      "currency": "INR",
+      "frequency": "yearly_per_family",
+      "description": "₹5 Lakh cashless health coverage per family per year at empanelled government and private hospitals. Covers 1,929+ procedures."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "ration_card", "name": "Ration Card / ABHA Card", "mandatory": false },
+      { "id": "mobile", "name": "Mobile Number linked to Aadhaar", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://beneficiary.nha.gov.in",
+      "offline_steps": [
+        "Check eligibility at Ayushman Mitra kiosk at any empanelled hospital",
+        "Or check online at beneficiary.nha.gov.in with Aadhaar / Ration Card",
+        "No enrollment needed — auto-enrolled if in SECC 2011 list"
+      ]
+    },
+    "tags": ["health", "insurance", "hospital", "medical", "cashless", "central scheme", "Ayushman"]
+  },
+  {
+    "scheme_id": "pm_jeevan_jyoti_bima",
+    "name": "PM Jeevan Jyoti Bima Yojana (PMJJBY)",
+    "name_hindi": "प्रधानमंत्री जीवन ज्योति बीमा योजना",
+    "department": "Ministry of Finance, Government of India",
+    "category": "social_security",
+    "description": "Renewable life insurance scheme offering ₹2 Lakh term cover for death due to any cause at just ₹436 per year premium.",
+    "eligibility": {
+      "hard_constraints": {
+        "min_age": { "general_male": 18, "female": 18 },
+        "max_age": 50,
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bank_account": { "weight": 0.9, "description": "Must have savings bank account linked to Aadhaar" }
+      }
+    },
+    "benefits": {
+      "type": "life_insurance",
+      "amount": 200000,
+      "currency": "INR",
+      "frequency": "on_death",
+      "description": "₹2,00,000 life cover for death due to any cause. Premium: ₹436/year (auto-deducted from bank account)."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Savings Bank Account", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://jansuraksha.gov.in",
+      "offline_steps": [
+        "Fill PMJJBY enrollment form at your bank branch",
+        "Or enroll through net banking / mobile banking of your bank"
+      ]
+    },
+    "tags": ["life insurance", "death benefit", "social security", "central scheme", "low premium", "bank"]
+  },
+  {
+    "scheme_id": "pm_suraksha_bima",
+    "name": "PM Suraksha Bima Yojana (PMSBY)",
+    "name_hindi": "प्रधानमंत्री सुरक्षा बीमा योजना",
+    "department": "Ministry of Finance, Government of India",
+    "category": "social_security",
+    "description": "Accident insurance scheme providing coverage for accidental death and disability at a premium of just ₹20/year.",
+    "eligibility": {
+      "hard_constraints": {
+        "min_age": { "general_male": 18, "female": 18 },
+        "max_age": 70,
+        "domicile": "jharkhand",
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "accident_insurance",
+      "amount": 200000,
+      "currency": "INR",
+      "frequency": "on_claim",
+      "description": "₹2,00,000 for accidental death or total disability; ₹1,00,000 for partial disability. Premium: ₹20/year."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "bank_account", "name": "Savings Bank Account", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://jansuraksha.gov.in",
+      "offline_steps": [
+        "Fill PMSBY enrollment form at your bank branch",
+        "Or enroll through net banking / mobile banking"
+      ]
+    },
+    "tags": ["accident insurance", "disability", "social security", "central scheme", "Rs 20", "bank"]
+  },
+  {
+    "scheme_id": "kisan_credit_card",
+    "name": "Kisan Credit Card (KCC)",
+    "name_hindi": "किसान क्रेडिट कार्ड",
+    "department": "Ministry of Agriculture & Farmers' Welfare / NABARD",
+    "category": "agriculture",
+    "description": "Credit card for farmers providing flexible revolving credit for agricultural inputs, post-harvest expenses, and allied activities at subsidized interest rates.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "min_age": { "general_male": 18, "female": 18 },
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {}
+    },
+    "benefits": {
+      "type": "credit",
+      "max_amount": 300000,
+      "currency": "INR",
+      "description": "Credit limit up to ₹3 Lakh at 7% interest (4% effective with interest subvention for timely repayment). Includes crop + personal accident insurance."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "land_record", "name": "Land Records (Khatian/ROR)", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account", "mandatory": true },
+      { "id": "passport_photo", "name": "Passport size photograph", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmkisan.gov.in/KCC.aspx",
+      "offline_steps": [
+        "Apply at your nearest cooperative bank, SBI, or regional rural bank",
+        "PM Kisan beneficiaries can apply online via PM Kisan portal"
+      ]
+    },
+    "tags": ["agriculture", "farmer", "credit", "loan", "KCC", "input subsidy"]
+  },
+  {
+    "scheme_id": "jharkhand_cm_disability_pension",
+    "name": "Mukhyamantri Divyang Pension Yojana",
+    "name_hindi": "मुख्यमंत्री दिव्यांग पेंशन योजना",
+    "department": "Department of Social Welfare, Jharkhand",
+    "category": "social_security",
+    "description": "Monthly pension for persons with disabilities in Jharkhand who have 40% or more disability and are below 60 years of age.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "min_age": { "general_male": 18, "female": 18 },
+        "max_age": 59,
+        "max_income_annual": 60000,
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"],
+        "special_conditions": ["disabled"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.5, "description": "BPL card holders prioritized" }
+      }
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 1000,
+      "currency": "INR",
+      "frequency": "monthly",
+      "description": "₹1,000 per month. Persons with 80%+ disability get ₹1,500/month."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "disability_cert", "name": "Disability Certificate (40%+) from CMO/Medical Board", "mandatory": true },
+      { "id": "domicile", "name": "Jharkhand Domicile Certificate", "mandatory": true },
+      { "id": "income_cert", "name": "Income Certificate (below ₹60,000/yr)", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://jharsewa.jharkhand.gov.in",
+      "offline_steps": [
+        "Submit application at Block office or Circle office",
+        "Attach disability certificate from authorized medical authority",
+        "Verified by district social welfare officer"
+      ]
+    },
+    "tags": ["disabled", "disability", "pension", "divyang", "monthly income", "Jharkhand", "social security"]
+  },
+  {
+    "scheme_id": "pm_awas_urban",
+    "name": "Pradhan Mantri Awas Yojana – Urban (PMAY-U)",
+    "name_hindi": "प्रधानमंत्री आवास योजना – शहरी",
+    "department": "Ministry of Housing and Urban Affairs, Government of India",
+    "category": "housing",
+    "description": "Provides affordable housing to urban poor including slum dwellers, EWS, LIG, and MIG categories through Credit Linked Subsidy Scheme (CLSS).",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "housing_status": ["homeless", "kutcha_house", "slum", "no_own_house"],
+        "max_income_annual": 1800000,
+        "categories": ["SC", "ST", "OBC", "General", "Minority"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "women_head": { "weight": 0.7, "description": "EWS/LIG houses must be in name of woman or co-ownership" },
+        "bpl_card": { "weight": 0.5, "description": "BPL families get in-situ slum redevelopment priority" }
+      }
+    },
+    "benefits": {
+      "type": "housing_subsidy",
+      "amount": 267280,
+      "currency": "INR",
+      "description": "EWS/LIG: Subsidy of 6.5% on loan up to ₹6L (max ₹2.67L subsidy). MIG-I: 4% on ₹9L. MIG-II: 3% on ₹12L."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card of all adult family members", "mandatory": true },
+      { "id": "income_cert", "name": "Income Certificate / Salary slip / ITR", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account", "mandatory": true },
+      { "id": "affidavit", "name": "Affidavit of no pucca house ownership in India", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["online", "offline"],
+      "online_url": "https://pmaymis.gov.in",
+      "offline_steps": [
+        "Apply online at pmaymis.gov.in or at city/municipal office",
+        "For CLSS: apply through Housing Finance Companies or banks",
+        "For slum redevelopment: apply through Urban Local Body (Municipality)"
+      ]
+    },
+    "tags": ["housing", "urban", "city", "slum", "home loan subsidy", "PMAY", "central scheme"]
+  },
+  {
+    "scheme_id": "jharkhand_widow_remarriage",
+    "name": "Mukhyamantri Sukhad Rahat Yojana (Widow Relief)",
+    "name_hindi": "मुख्यमंत्री सुखाड़ राहत योजना",
+    "department": "Department of Agriculture, Jharkhand",
+    "category": "social_security",
+    "description": "Relief assistance to drought-affected farm families in Jharkhand providing immediate income support for food and agricultural recovery.",
+    "eligibility": {
+      "hard_constraints": {
+        "domicile": "jharkhand",
+        "occupation": ["farmer"],
+        "categories": ["SC", "ST", "OBC", "General"],
+        "gender": ["male", "female", "other"]
+      },
+      "soft_constraints": {
+        "bpl_card": { "weight": 0.6, "description": "BPL farming families prioritised" }
+      }
+    },
+    "benefits": {
+      "type": "financial",
+      "amount": 3500,
+      "currency": "INR",
+      "frequency": "one_time",
+      "description": "₹3,500 immediate relief per affected farm family via DBT during declared drought periods."
+    },
+    "documents_required": [
+      { "id": "aadhaar", "name": "Aadhaar Card", "mandatory": true },
+      { "id": "land_record", "name": "Land Record / Khatian", "mandatory": true },
+      { "id": "bank_account", "name": "Bank Account (Aadhaar linked)", "mandatory": true }
+    ],
+    "application_process": {
+      "mode": ["offline"],
+      "online_url": null,
+      "offline_steps": [
+        "Registration done automatically by government based on Gram Sabha surveys",
+        "Verify your name in the beneficiary list at block/panchayat office",
+        "Amount directly transferred to bank account"
+      ]
+    },
+    "tags": ["drought relief", "farmer", "immediate help", "agriculture", "Jharkhand", "state scheme"]
+  }
+]
