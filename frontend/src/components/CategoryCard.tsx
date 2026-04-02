@@ -1,5 +1,8 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 type CategoryCardProps = {
   id: string;
@@ -27,8 +30,12 @@ const colorMap: Record<string, string> = {
 };
 
 export default function CategoryCard({ id, name, count }: CategoryCardProps) {
+  const { t } = useLanguage();
   const icon = iconMap[id] || '📄';
   const colorClass = colorMap[id] || 'from-slate-500/20 to-slate-500/5 hover:border-slate-500/50';
+
+  // Translate category name
+  const translatedName = t(`cat.${id}`) !== `cat.${id}` ? t(`cat.${id}`) : name;
 
   return (
     <Link href={`/explore/${id}`}>
@@ -42,14 +49,14 @@ export default function CategoryCard({ id, name, count }: CategoryCardProps) {
             {icon}
           </div>
           <span className="bg-slate-900/80 px-3 py-1 rounded-full text-xs font-semibold text-slate-300 border border-slate-700">
-            {count} Schemes
+            {count} {t('explore.schemes_count')}
           </span>
         </div>
         
         <div>
-          <h3 className="text-xl font-bold text-white mb-2">{name}</h3>
+          <h3 className="text-xl font-bold text-white mb-2">{translatedName}</h3>
           <p className="text-sm text-slate-400 flex items-center gap-1 group-hover:text-slate-300 transition-colors">
-            Explore schemes <span className="text-lg">→</span>
+            {t('explore.explore_link')}
           </p>
         </div>
       </div>

@@ -2,6 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import SchemeCard from '@/components/SchemeCard';
+import { useLanguage } from '@/context/LanguageContext';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 type Message = {
   id: string;
@@ -11,23 +14,36 @@ type Message = {
 };
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: 'Johar! Welcome to Samarth. I am here to help you find Jharkhand government schemes you qualify for. Please tell me a bit about yourself (like your age, income, category, or gender).'
-    }
-  ]);
+  const { t, lang } = useLanguage();
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Single session ID per page load
-  const [sessionId] = useState(`session-${Math.random().toString(36).substring(2, 9)}`);
+  // Persistent session ID across page reloads
+  const [sessionId] = useState(() => {
+    if (typeof window === 'undefined') return `session-${Math.random().toString(36).substring(2, 9)}`;
+    const stored = localStorage.getItem('samarth_session_id');
+    if (stored) return stored;
+    const newId = `session-${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('samarth_session_id', newId);
+    return newId;
+  });
   
   // Profile state from API
   const [profile, setProfile] = useState<any>({});
   
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  // Set welcome message based on lang (update when lang changes)
+  useEffect(() => {
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: t('chat.welcome')
+    }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,13 +59,19 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, message: userMsg, language: 'en' })
+        body: JSON.stringify({ session_id: sessionId, message: userMsg, language: lang })
       });
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        const errMsg = data.detail || 'Server error. Please try again.';
+        setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: `⚠️ ${errMsg}` }]);
+        return;
+      }
       
       setMessages(prev => [...prev, {
         id: Date.now().toString() + 'r',
@@ -62,7 +84,7 @@ export default function ChatPage() {
       
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { id: 'err', role: 'assistant', content: 'Connecting to server failed. Please try again later. Is the backend running?' }]);
+      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: t('chat.error_connect') }]);
     } finally {
       setLoading(false);
     }
@@ -70,14 +92,13 @@ export default function ChatPage() {
 
   const handleQuickReply = (text: string) => {
     setInput(text);
-    // Add small delay to let state update before focusing/submitting if we wanted auto-submit
   };
 
   const quickReplies = [
-    "I am looking for housing schemes",
-    "I am a farmer looking for loans",
-    "What schemes are available for women?",
-    "Scholarships for class 10 students"
+    t('chat.quick.housing'),
+    t('chat.quick.farmer'),
+    t('chat.quick.scholarship'),
+    t('chat.quick.pension'),
   ];
 
   return (
@@ -87,28 +108,28 @@ export default function ChatPage() {
       <div className="hidden lg:flex flex-col w-[320px] p-6 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-3xl shrink-0 z-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
-            <span className="text-orange-500">Profile Engine</span>
+            <span className="text-orange-500">{t('chat.profile_engine')}</span>
           </h1>
-          <p className="text-xs text-slate-400">Context builds deterministic accuracy</p>
+          <p className="text-xs text-slate-400">{t('chat.profile_desc')}</p>
         </div>
         
         <div className="glass p-5 rounded-2xl flex-1 border-slate-700/50 overflow-y-auto scrollbar-hide">
           <div className="space-y-4">
-             <ProfileField label="Name" value={profile?.name} />
-             <ProfileField label="Age" value={profile?.age ? `${profile.age} Yrs` : null} />
-             <ProfileField label="Income" value={profile?.income ? `₹${profile.income.toLocaleString()}` : null} highlight="text-emerald-400" />
-             <ProfileField label="Category" value={profile?.category} highlight="text-orange-400" />
-             <ProfileField label="Gender" value={profile?.gender} capitalize />
-             <ProfileField label="Occupation" value={profile?.occupation} capitalize />
-             <ProfileField label="Farmer Type" value={profile?.farmer_type} capitalize />
-             <ProfileField label="Housing" value={profile?.housing_status} capitalize />
-             <ProfileField label="Student Class" value={profile?.student_class} />
-             <ProfileField label="Marital Status" value={profile?.marital_status} capitalize />
-             <ProfileField label="Ration Card" value={profile?.has_bpl_card !== undefined && profile?.has_bpl_card !== null ? (profile.has_bpl_card ? 'BPL' : 'No BPL') : null} />
+             <ProfileField label={t('profile.name')} value={profile?.name} />
+             <ProfileField label={t('profile.age')} value={profile?.age ? `${profile.age} Yrs` : null} />
+             <ProfileField label={t('profile.income')} value={profile?.income ? `₹${profile.income.toLocaleString()}` : null} highlight="text-emerald-400" />
+             <ProfileField label={t('profile.category')} value={profile?.category} highlight="text-orange-400" />
+             <ProfileField label={t('profile.gender')} value={profile?.gender} capitalize />
+             <ProfileField label={t('profile.occupation')} value={profile?.occupation} capitalize />
+             <ProfileField label={t('profile.farmer_type')} value={profile?.farmer_type} capitalize />
+             <ProfileField label={t('profile.housing')} value={profile?.housing_status} capitalize />
+             <ProfileField label={t('profile.student_class')} value={profile?.student_class} />
+             <ProfileField label={t('profile.marital_status')} value={profile?.marital_status} capitalize />
+             <ProfileField label={t('profile.ration')} value={profile?.has_bpl_card !== undefined && profile?.has_bpl_card !== null ? (profile.has_bpl_card ? 'BPL' : 'No BPL') : null} />
           </div>
           
           <div className="mt-8 pt-6 border-t border-white/10">
-            <h3 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">AI Context Confidence</h3>
+            <h3 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">{t('chat.confidence')}</h3>
             <div className="w-full bg-slate-800 rounded-full h-2">
               <div 
                 className="bg-gradient-to-r from-orange-500 to-amber-400 h-2 rounded-full transition-all duration-1000" 
@@ -125,7 +146,7 @@ export default function ChatPage() {
         {/* Messages Scroll Area */}
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 space-y-6">
           <div className="text-center mb-8">
-             <span className="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full border border-slate-700/50">Today</span>
+             <span className="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full border border-slate-700/50">{t('chat.today')}</span>
           </div>
 
           {messages.map((m) => (
@@ -190,7 +211,7 @@ export default function ChatPage() {
              <div className="flex-1 p-1 rounded-2xl bg-gradient-to-r from-slate-700/50 via-slate-600/30 to-slate-700/50 border border-slate-700/50 focus-within:border-orange-500/50 transition-all duration-300 shadow-xl overflow-hidden backdrop-blur-xl">
                <input
                  className="w-full bg-slate-800/80 text-white placeholder-slate-400 p-4 pl-5 outline-none rounded-xl text-[15px]"
-                 placeholder="Reply in Hindi or English..."
+                 placeholder={t('chat.placeholder')}
                  value={input}
                  onChange={e => setInput(e.target.value)}
                  disabled={loading}
@@ -213,7 +234,7 @@ export default function ChatPage() {
              </button>
           </form>
           <div className="text-center mt-2">
-             <span className="text-[10px] text-slate-500">Samarth uses AI. Always verify information on official portals.</span>
+             <span className="text-[10px] text-slate-500">{t('chat.disclaimer')}</span>
           </div>
         </div>
         

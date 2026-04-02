@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import CategoryCard from '@/components/CategoryCard';
+import { useLanguage } from '@/context/LanguageContext';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 type CategoryInfo = {
   id: string;
@@ -10,13 +13,14 @@ type CategoryInfo = {
 };
 
 export default function ExplorePage() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch('http://localhost:8000/api/categories');
+        const res = await fetch(`${API_URL}/api/categories`);
         if (res.ok) {
           const data = await res.json();
           setCategories(data);
@@ -33,9 +37,9 @@ export default function ExplorePage() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-24 page-enter">
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Explore <span className="text-orange-400">Schemes</span></h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">{t('explore.title')} <span className="text-orange-400">{t('explore.title2')}</span></h1>
         <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-          Browse through all active government schemes in Jharkhand. Select a category below to see available support and benefits.
+          {t('explore.desc')}
         </p>
       </div>
 

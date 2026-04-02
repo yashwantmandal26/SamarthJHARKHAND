@@ -19,7 +19,14 @@ async def chat_endpoint(request: ChatRequest):
         result = await orchestrator.process_message(request.session_id, request.message)
         return ChatResponse(**result)
     except Exception as e:
+        error_msg = str(e).lower()
         print(f"Error in chat endpoint: {e}")
+        
+        if "429" in str(e) or "quota" in error_msg or "rate" in error_msg:
+            raise HTTPException(
+                status_code=429, 
+                detail="Gemini API ka quota khatam ho gaya hai. Thodi der baad try karein (1-2 minute). Free tier mein limited requests hain."
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/categories")

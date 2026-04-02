@@ -126,3 +126,18 @@
 .stagger-3 { animation-delay: 300ms; }
 .stagger-4 { animation-delay: 400ms; }
 .stagger-5 { animation-delay: 500ms; }
+
+/* Fade in animation for dropdowns */
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Hindi font utility */
+.font-hindi {
+  font-family: var(--font-noto-sans-devanagari), 'Noto Sans Devanagari', sans-serif;
+}

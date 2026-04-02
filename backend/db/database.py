@@ -56,7 +56,7 @@ class Database:
         conn.commit()
         conn.close()
 
-    async def get_profile(self, session_id: str) -> Optional[UserProfile]:
+    async def get_profile(self, session_id: str) -> UserProfile:
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("SELECT * FROM user_profiles WHERE session_id = ?", (session_id,)) as cursor:
@@ -64,13 +64,13 @@ class Database:
                 if row:
                     data = dict(row)
                     # Convert JSON back to list
-                    if data.get('disabilities_json'):
-                        data['disabilities'] = json.loads(data['disabilities_json'])
-                    del data['disabilities_json']
-                    del data['created_at']
-                    del data['updated_at']
+                    disabilities_json = data.pop('disabilities_json', None)
+                    if disabilities_json:
+                        data['disabilities'] = json.loads(disabilities_json)
+                    data.pop('created_at', None)
+                    data.pop('updated_at', None)
                     return UserProfile(**data)
-        return UserProfile(session_id=session_id) # Return empty if not found
+        return UserProfile(session_id=session_id)  # Return empty if not found
 
     async def save_profile(self, profile: UserProfile):
         async with aiosqlite.connect(self.db_path) as db:

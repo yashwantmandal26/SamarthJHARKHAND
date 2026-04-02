@@ -14,9 +14,16 @@ load_dotenv(PROJECT_ROOT / ".env")
 class Settings:
     """Application settings loaded from environment variables."""
 
-    # Gemini
+    # LLM Provider: 'ollama' for local, 'gemini' for cloud
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama")
+
+    # Gemini (Cloud)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    # Ollama (Local)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3:8b")
 
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./samarth.db")
