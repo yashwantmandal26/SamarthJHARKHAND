@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Any
 from backend.api.models import ChatRequest, ChatResponse, ProfileUpdateRequest, WhatIfRequest, WhatIfResponse, AIAssistantRequest, AIAssistantResponse
 from backend.core.orchestrator import orchestrator
@@ -118,3 +119,14 @@ async def ai_assistant_endpoint(request: AIAssistantRequest):
                 detail="API rate limit reached. Please wait a moment and try again."
             )
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ai-chat-stream")
+async def ai_assistant_stream_endpoint(request: AIAssistantRequest):
+    """
+    Pure AI Assistant streaming endpoint.
+    Sends SSE Server-Sent Events containing chunks of output.
+    """
+    return StreamingResponse(
+        pure_ai_assistant.process_message_stream(request.session_id, request.message),
+        media_type="text/event-stream"
+    )

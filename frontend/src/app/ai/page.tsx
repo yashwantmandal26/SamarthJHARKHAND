@@ -80,27 +80,64 @@ export default function AIAssistantPage() {
     abortControllerRef.current = controller;
 
     try {
-      const response = await fetch(`${API_URL}/api/ai-chat`, {
+      const response = await fetch(`${API_URL}/api/ai-chat-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, message: userMsg }),
         signal: controller.signal,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        const errMsg = data.detail || 'Server error. Please try again.';
+        let errMsg = 'Server error. Please try again.';
+        try {
+          const data = await response.json();
+          errMsg = data.detail || errMsg;
+        } catch { /* ignore */ }
         setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: `⚠️ ${errMsg}` }]);
         return;
       }
 
+      if (!response.body) return;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      const messageId = Date.now().toString() + 'r';
+      
       setMessages(prev => [...prev, {
-        id: Date.now().toString() + 'r',
+        id: messageId,
         role: 'assistant',
-        content: data.response,
-        sources: data.sources
+        content: '',
+        sources: []
       }]);
+
+      let fullContent = '';
+      let done = false;
+      let buffer = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n');
+          buffer = parts.pop() || ''; // Keep the last incomplete part in the buffer
+          
+          for (const line of parts) {
+            if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(line);
+              if (data.type === 'sources') {
+                setMessages(prev => prev.map(m => m.id === messageId ? { ...m, sources: data.sources } : m));
+              } else if (data.type === 'chunk') {
+                fullContent += data.text;
+                setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: fullContent } : m));
+              }
+            } catch (e) {
+              console.error('Stream parse error:', line, e);
+            }
+          }
+        }
+      }
 
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {

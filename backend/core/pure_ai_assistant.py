@@ -143,5 +143,75 @@ IMPORTANT INSTRUCTIONS:
             }
         }
 
+    async def process_message_stream(self, session_id: str, message: str):
+        """Process a user message using RAG pipeline, streaming the response."""
+        # 1. Get chat history for context
+        chat_history = await db_client.get_chat_history(session_id, limit=8)
+
+        # 2. Retrieve relevant schemes via RAG
+        rag_context = rag_engine.build_context(
+            query=message,
+            chat_history=chat_history,
+            top_k=4
+        )
+
+        # 3. Build the prompt
+        history_text = ""
+        if chat_history:
+            for h in chat_history[-4:]:
+                role_label = "User" if h["role"] == "user" else "Samarth"
+                history_text += f"{role_label}: {h['content']}\n"
+
+        generation_prompt = f"""CONVERSATION HISTORY:
+{history_text if history_text else "(First message in conversation)"}
+
+USER'S LATEST QUESTION: "{message}"
+
+{rag_context}
+
+IMPORTANT INSTRUCTIONS:
+1. Before answering, ANALYZE each retrieved scheme — does it ACTUALLY match the user's question/situation?
+2. A scheme is generally RELEVANT only if its eligibility criteria (especially Occupation field) matches the user, OR it's a universal scheme for all citizens.
+3. EXCEPTION FOR DIRECT QUESTIONS: If the user explicitly asks about a specific scheme by name (e.g., "How to apply for PM Kisan"), you MUST answer their question using the retrieved data. Even if it is marked as NOT RELEVANT to their occupation, you MUST provide the requested details (like application steps) but politely mention they might not be eligible. Do NOT refuse to answer direct questions.
+4. If a scheme's eligibility says "Occupation: farmer" but the user is a fisherman, that scheme is NOT relevant for general recommendations.
+5. If the user asks for general recommendations ("What schemes are for me?") and NONE of the retrieved schemes are directly relevant, clearly say so.
+6. You may mention universal/general welfare schemes but clearly label them as "general schemes available to all citizens" not specific to their situation.
+7. DO NOT just list all retrieved schemes — filter out the irrelevant ones unless the user specifically asked for them.
+8. Be honest and natural — saying "no specific scheme found" is better than misleading the user with irrelevant schemes."""
+
+        # 4. Get the retrieved scheme names for the frontend
+        retrieved_schemes = rag_engine.retrieve(message, top_k=8)
+        sources = []
+        if retrieved_schemes:
+            max_score = max(score for _, score in retrieved_schemes) if retrieved_schemes else 0
+            min_threshold = max(1.0, max_score * 0.3)
+            for scheme, score in retrieved_schemes:
+                if score >= min_threshold:
+                    sources.append({
+                        "scheme_id": scheme.scheme_id,
+                        "scheme_name": scheme.name,
+                        "scheme_name_hindi": scheme.name_hindi,
+                        "category": scheme.category,
+                        "relevance_score": round(score, 2),
+                    })
+
+        # Yield sources first
+        yield json.dumps({"type": "sources", "sources": sources}) + "\n"
+
+        # 5. Stream response
+        response_text = ""
+        async for chunk in llm_client.generate_response_stream(
+            prompt=generation_prompt,
+            history=[{"role": "user", "content": RAG_SYSTEM_PROMPT}]
+        ):
+            response_text += chunk
+            yield json.dumps({"type": "chunk", "text": chunk}) + "\n"
+
+        # 6. Save to DB afterwards
+        await db_client.add_message(session_id, "user", message)
+        await db_client.add_message(session_id, "assistant", response_text)
+        
+        yield json.dumps({"type": "done"}) + "\n"
+
 
 pure_ai_assistant = PureAIAssistant()
