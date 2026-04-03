@@ -1,16 +1,24 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import SchemeCard from '@/components/SchemeCard';
 import { useLanguage } from '@/context/LanguageContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+type SchemeEval = {
+  scheme_id: string;
+  scheme_name: string;
+  status: string;
+  failed_reasons: string[];
+  missing_data: string[];
+};
+
 type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  schemes?: any[];
+  schemes?: SchemeEval[];
 };
 
 export default function ChatPage() {
@@ -30,10 +38,30 @@ export default function ChatPage() {
     return newId;
   });
   
-  // Profile state from API
-  const [profile, setProfile] = useState<any>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [profile, setProfile] = useState<Record<string, any>>({});
   
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Global focus listener: typing or pasting anywhere focuses the chat input
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere if they are somehow focused on another valid input 
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Auto-focus if user types a printable character or presses Ctrl+V / Cmd+V
+      if (e.key.length === 1 || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v')) {
+        inputRef.current?.focus();
+      }
+    };
+    
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Set welcome message based on lang (update when lang changes)
   useEffect(() => {
@@ -58,11 +86,16 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
     setLoading(true);
 
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, message: userMsg, language: lang })
+        body: JSON.stringify({ session_id: sessionId, message: userMsg, language: lang }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -82,13 +115,25 @@ export default function ChatPage() {
       
       setProfile(data.profile_snapshot || {});
       
-    } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: t('chat.error_connect') }]);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setMessages(prev => [...prev, { id: `stop-${Date.now()}`, role: 'assistant', content: '⏹️ Response stopped by you.' }]);
+      } else {
+        console.error(error);
+        setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: t('chat.error_connect') }]);
+      }
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   };
+
+  const handleStop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   const handleQuickReply = (text: string) => {
     setInput(text);
@@ -101,17 +146,46 @@ export default function ChatPage() {
     t('chat.quick.pension'),
   ];
 
+  const handleNewChat = async () => {
+    // Reset the backend session
+    try {
+      await fetch(`${API_URL}/api/session/${sessionId}`, { method: 'DELETE' });
+    } catch {
+      // Ignore errors, just reset locally
+    }
+    // Generate a new session ID
+    const newId = `session-${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('samarth_session_id', newId);
+    // Reset all state
+    setProfile({});
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: t('chat.welcome')
+    }]);
+    // Reload to pick up new session ID
+    window.location.reload();
+  };
+
   return (
     <div className="flex h-[calc(100vh-80px)] mt-20 max-w-[1600px] mx-auto overflow-hidden w-full page-enter">
       
       {/* 1. Left Sidebar - Profile & Stats (Desktop Only) */}
       <div className="hidden lg:flex flex-col w-[320px] p-6 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-3xl shrink-0 z-10">
-        <div className="mb-8">
+        <div className="mb-4">
           <h1 className="text-2xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
             <span className="text-orange-500">{t('chat.profile_engine')}</span>
           </h1>
           <p className="text-xs text-slate-400">{t('chat.profile_desc')}</p>
         </div>
+        
+        <button 
+          onClick={handleNewChat}
+          className="mb-4 w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/50 text-slate-300 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer hover:border-orange-500/30"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          New Chat
+        </button>
         
         <div className="glass p-5 rounded-2xl flex-1 border-slate-700/50 overflow-y-auto scrollbar-hide">
           <div className="space-y-4">
@@ -210,14 +284,28 @@ export default function ChatPage() {
           <form onSubmit={handleSend} className="relative group max-w-4xl mx-auto flex gap-2">
              <div className="flex-1 p-1 rounded-2xl bg-gradient-to-r from-slate-700/50 via-slate-600/30 to-slate-700/50 border border-slate-700/50 focus-within:border-orange-500/50 transition-all duration-300 shadow-xl overflow-hidden backdrop-blur-xl">
                <input
+                 ref={inputRef}
                  className="w-full bg-slate-800/80 text-white placeholder-slate-400 p-4 pl-5 outline-none rounded-xl text-[15px]"
-                 placeholder={t('chat.placeholder')}
+                 placeholder={loading ? t('chat.placeholder_typing') : t('chat.placeholder')}
                  value={input}
                  onChange={e => setInput(e.target.value)}
-                 disabled={loading}
                  autoFocus
                />
              </div>
+
+             {/* Stop button — visible only during loading */}
+             {loading && (
+               <button
+                 type="button"
+                 onClick={handleStop}
+                 className="flex-shrink-0 w-14 h-[60px] rounded-2xl flex items-center justify-center mt-[4px] bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg hover:shadow-red-500/30 cursor-pointer hover:scale-105 transition-all duration-200 animate-pulse"
+                 title="Stop generating"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                   <rect x="6" y="6" width="12" height="12" rx="2" />
+                 </svg>
+               </button>
+             )}
              
              <button 
                type="submit"
@@ -244,7 +332,7 @@ export default function ChatPage() {
 }
 
 // Small helper component for sidebar
-function ProfileField({ label, value, highlight = "text-white", capitalize = false }: { label: string, value: any, highlight?: string, capitalize?: boolean }) {
+function ProfileField({ label, value, highlight = "text-white", capitalize = false }: { label: string, value: string | number | boolean | null | undefined, highlight?: string, capitalize?: boolean }) {
   if (value === undefined) return null;
   
   const displayValue = value === null || value === '' ? '--' : value;

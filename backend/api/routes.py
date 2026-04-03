@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
-from backend.api.models import ChatRequest, ChatResponse, ProfileUpdateRequest, WhatIfRequest, WhatIfResponse
+from backend.api.models import ChatRequest, ChatResponse, ProfileUpdateRequest, WhatIfRequest, WhatIfResponse, AIAssistantRequest, AIAssistantResponse
 from backend.core.orchestrator import orchestrator
+from backend.core.pure_ai_assistant import pure_ai_assistant
 from backend.db.database import db_client
 from backend.data.loader import scheme_db
 from backend.core.what_if import what_if_simulator
@@ -91,3 +92,29 @@ async def whatif_simulation(request: WhatIfRequest):
          })
          
     return WhatIfResponse(simulated_results=formatted)
+
+@router.delete("/session/{session_id}")
+async def reset_session(session_id: str):
+    """Reset a session: clear profile and chat history."""
+    await db_client.reset_session(session_id)
+    return {"status": "success", "message": "Session reset"}
+
+@router.post("/ai-chat", response_model=AIAssistantResponse)
+async def ai_assistant_endpoint(request: AIAssistantRequest):
+    """
+    Pure AI Assistant endpoint powered by RAG.
+    Retrieves relevant scheme data and uses LLM to answer comprehensively.
+    """
+    try:
+        result = await pure_ai_assistant.process_message(request.session_id, request.message)
+        return AIAssistantResponse(**result)
+    except Exception as e:
+        error_msg = str(e).lower()
+        print(f"Error in AI assistant endpoint: {e}")
+        
+        if "429" in str(e) or "quota" in error_msg or "rate" in error_msg:
+            raise HTTPException(
+                status_code=429, 
+                detail="API rate limit reached. Please wait a moment and try again."
+            )
+        raise HTTPException(status_code=500, detail=str(e))

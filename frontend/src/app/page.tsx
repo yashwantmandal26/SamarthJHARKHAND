@@ -59,7 +59,7 @@ export default function Home() {
       <section className="relative z-10 w-full max-w-6xl mx-auto px-6 mb-24 stagger-3 page-enter opacity-0" style={{ animationDelay: '400ms' }}>
          <div className="glass-card rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-around gap-8 md:gap-4">
             <div className="text-center">
-               <div className="text-4xl font-bold text-white mb-2">25+</div>
+               <div className="text-4xl font-bold text-white mb-2">110+</div>
                <div className="text-sm font-medium text-slate-400 uppercase tracking-wider">{t('home.stats.schemes')}</div>
             </div>
             <div className="hidden md:block w-px h-16 bg-slate-700/50"></div>

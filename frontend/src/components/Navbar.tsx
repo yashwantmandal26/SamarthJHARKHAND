@@ -33,10 +33,11 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navLinks = [
+  const navLinks: { name: string; path: string; highlight?: boolean; highlightAlt?: boolean }[] = [
     { name: t('nav.home'), path: '/' },
     { name: t('nav.explore'), path: '/explore' },
     { name: t('nav.chat'), path: '/chat', highlight: true },
+    { name: t('nav.ai'), path: '/ai', highlightAlt: true },
   ];
 
   const languages: { key: Language; label: string; flag: string }[] = [
@@ -79,7 +80,19 @@ export default function Navbar() {
                   <Link
                     key={link.path}
                     href={link.path}
-                    className="ml-4 px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium text-sm hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:scale-105 transition-all duration-300"
+                    className="ml-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium text-sm hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:scale-105 transition-all duration-300"
+                  >
+                    {link.name}
+                  </Link>
+                );
+              }
+
+              if (link.highlightAlt) {
+                return (
+                  <Link
+                    key={link.path}
+                    href={link.path}
+                    className="ml-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-medium text-sm hover:shadow-[0_0_20px_rgba(20,184,166,0.4)] hover:scale-105 transition-all duration-300"
                   >
                     {link.name}
                   </Link>
@@ -186,9 +199,11 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-3 py-3 rounded-md text-base font-medium ${link.highlight
                     ? 'mt-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-center shadow-lg'
-                    : isActive
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : link.highlightAlt
+                      ? 'mt-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-center shadow-lg'
+                      : isActive
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                 >
                   {link.name}

@@ -120,7 +120,7 @@ class ProfileManager:
         # If we know their occupation, infer the priority
         if profile.occupation:
             occ = profile.occupation.lower()
-            if occ == "farmer":
+            if occ in ("farmer", "fisherman"):
                 return self.CONTEXT_PRIORITIES["agriculture"]
             elif occ == "student":
                 return self.CONTEXT_PRIORITIES["education"]
@@ -133,7 +133,7 @@ class ProfileManager:
     def _is_field_relevant(self, field: str, profile: UserProfile) -> bool:
         """Checks if a field is actually relevant to this user's context."""
         # Don't ask farmer_type if they're not a farmer
-        if field == "farmer_type" and profile.occupation and profile.occupation.lower() != "farmer":
+        if field == "farmer_type" and profile.occupation and profile.occupation.lower() not in ("farmer",):
             return False
 
         # Don't ask student_class if they're not a student

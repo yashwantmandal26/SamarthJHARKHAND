@@ -343,6 +343,11 @@ const translations: Record<string, Record<Language, string>> = {
     hi: "अपना संदेश हिंदी, अंग्रेजी या हिंग्लिश में लिखें...",
     hinglish: "Apna message Hindi, English ya Hinglish mein likho...",
   },
+  "chat.placeholder_typing": {
+    en: "Type your next message while AI is thinking...",
+    hi: "AI सोच रहा है... अगला संदेश लिखते रहें...",
+    hinglish: "AI soch raha hai... apna agla message likho...",
+  },
   "chat.disclaimer": {
     en: "Samarth uses AI. Always verify information on official portals.",
     hi: "समर्थ AI का उपयोग करता है। हमेशा आधिकारिक पोर्टल पर जानकारी सत्यापित करें।",
@@ -436,6 +441,115 @@ const translations: Record<string, Record<Language, string>> = {
   "lang.en": { en: "English", hi: "English", hinglish: "English" },
   "lang.hi": { en: "हिंदी", hi: "हिंदी", hinglish: "हिंदी" },
   "lang.hinglish": { en: "Hinglish", hi: "Hinglish", hinglish: "Hinglish" },
+
+  // ─── NAVBAR — AI ASSISTANT ────────────────────────────
+  "nav.ai": {
+    en: "Pure AI",
+    hi: "Pure AI",
+    hinglish: "Pure AI",
+  },
+
+  // ─── PURE AI ASSISTANT PAGE ───────────────────────────
+  "ai.title": {
+    en: "Pure AI Assistant",
+    hi: "Pure AI सहायक",
+    hinglish: "Pure AI Assistant",
+  },
+  "ai.subtitle": {
+    en: "RAG-powered scheme knowledge engine",
+    hi: "RAG-संचालित योजना ज्ञान इंजन",
+    hinglish: "RAG-powered scheme knowledge engine",
+  },
+  "ai.badge": {
+    en: "Pure AI Mode — Powered by RAG",
+    hi: "Pure AI मोड — RAG से संचालित",
+    hinglish: "Pure AI Mode — RAG se powered",
+  },
+  "ai.welcome": {
+    en: "Namaste! 🙏 I am Samarth's **Pure AI Assistant**.\n\nI can answer any question about Jharkhand government schemes in detail — eligibility rules, benefits, documents, application process, comparisons, and more.\n\nUnlike the Scheme Matcher, I use **RAG (Retrieval Augmented Generation)** to search through my entire scheme knowledge base and give you comprehensive answers.\n\nAsk me anything! For example:\n• \"Compare housing schemes for BPL families\"\n• \"What documents do I need for PM Kisan?\"\n• \"Explain Savitribai Phule scheme benefits\"",
+    hi: "नमस्ते! 🙏 मैं समर्थ का **Pure AI सहायक** हूँ।\n\nमैं झारखंड की सरकारी योजनाओं के बारे में कोई भी सवाल का विस्तार से जवाब दे सकता हूँ — पात्रता नियम, लाभ, दस्तावेज़, आवेदन प्रक्रिया, तुलना, और बहुत कुछ।\n\nScheme Matcher से अलग, मैं **RAG (Retrieval Augmented Generation)** तकनीक का उपयोग करता हूँ।\n\nकुछ भी पूछें! जैसे:\n• \"BPL परिवारों के लिए आवास योजनाओं की तुलना करें\"\n• \"PM किसान के लिए कौन से दस्तावेज़ चाहिए?\"\n• \"सावित्रीबाई फुले योजना के लाभ बताइए\"",
+    hinglish: "Namaste! 🙏 Main Samarth ka **Pure AI Assistant** hoon.\n\nMain Jharkhand ki sarkari yojanaon ke baare mein koi bhi sawaal ka detail mein jawab de sakta hoon — eligibility rules, benefits, documents, application process, comparisons, aur bahut kuch.\n\nScheme Matcher se alag, main **RAG (Retrieval Augmented Generation)** use karta hoon apne scheme knowledge base se comprehensive answers dene ke liye.\n\nKuch bhi pucho! Jaise:\n• \"BPL families ke liye housing schemes compare karo\"\n• \"PM Kisan ke liye kya documents chahiye?\"\n• \"Savitribai Phule scheme ke benefits batao\"",
+  },
+  "ai.placeholder": {
+    en: "Ask anything about Jharkhand schemes...",
+    hi: "झारखंड योजनाओं के बारे में कुछ भी पूछें...",
+    hinglish: "Jharkhand schemes ke baare mein kuch bhi pucho...",
+  },
+  "ai.placeholder_typing": {
+    en: "Type your next question while AI is searching...",
+    hi: "AI खोज रहा है... अगला सवाल लिखते रहें...",
+    hinglish: "AI search kar raha hai... apna agla sawaal likho...",
+  },
+  "ai.disclaimer": {
+    en: "Pure AI mode uses RAG for comprehensive answers. Always verify on official portals.",
+    hi: "Pure AI मोड RAG का उपयोग करता है। हमेशा आधिकारिक पोर्टल पर सत्यापित करें।",
+    hinglish: "Pure AI mode RAG use karta hai. Hamesha official portals pe verify karo.",
+  },
+  "ai.capabilities": {
+    en: "What I Can Do",
+    hi: "मेरी क्षमताएँ",
+    hinglish: "Main Kya Kar Sakta Hoon",
+  },
+  "ai.cap.search": {
+    en: "Search & find relevant schemes instantly",
+    hi: "प्रासंगिक योजनाएँ खोजें",
+    hinglish: "Relevant schemes instantly dhundho",
+  },
+  "ai.cap.compare": {
+    en: "Compare multiple schemes side by side",
+    hi: "कई योजनाओं की तुलना करें",
+    hinglish: "Multiple schemes compare karo",
+  },
+  "ai.cap.apply": {
+    en: "Step-by-step application guidance",
+    hi: "चरण-दर-चरण आवेदन मार्गदर्शन",
+    hinglish: "Step-by-step apply karne ki guidance",
+  },
+  "ai.cap.documents": {
+    en: "Explain required documents clearly",
+    hi: "आवश्यक दस्तावेज़ स्पष्ट रूप से बताएं",
+    hinglish: "Required documents clearly samjhao",
+  },
+  "ai.cap.suggest": {
+    en: "Suggest schemes based on your situation",
+    hi: "आपकी स्थिति के अनुसार योजनाएँ सुझाएं",
+    hinglish: "Aapki situation ke hisaab se schemes suggest karo",
+  },
+  "ai.cap.multilingual": {
+    en: "Answer in English, Hindi, or Hinglish",
+    hi: "अंग्रेज़ी, हिंदी, या हिंग्लिश में जवाब",
+    hinglish: "English, Hindi ya Hinglish mein jawab",
+  },
+  "ai.powered_by": {
+    en: "Powered By",
+    hi: "द्वारा संचालित",
+    hinglish: "Powered By",
+  },
+  "ai.rag_desc": {
+    en: "Retrieves relevant scheme data using BM25 scoring, then generates answers with full context.",
+    hi: "BM25 स्कोरिंग से योजना डेटा लाता है, फिर पूर्ण संदर्भ के साथ उत्तर बनाता है।",
+    hinglish: "BM25 scoring se relevant scheme data lata hai, phir full context ke saath answer generate karta hai.",
+  },
+  "ai.suggest.compare": {
+    en: "Compare housing schemes for poor families",
+    hi: "गरीब परिवारों के लिए आवास योजनाओं की तुलना",
+    hinglish: "Garib families ke liye housing schemes compare karo",
+  },
+  "ai.suggest.housing": {
+    en: "Tell me about Abua Awas Yojana",
+    hi: "अबुआ आवास योजना के बारे में बताइए",
+    hinglish: "Abua Awas Yojana ke baare mein batao",
+  },
+  "ai.suggest.apply": {
+    en: "How to apply for PM Kisan scheme?",
+    hi: "PM किसान योजना के लिए कैसे आवेदन करें?",
+    hinglish: "PM Kisan scheme ke liye kaise apply karein?",
+  },
+  "ai.suggest.documents": {
+    en: "What documents needed for pension?",
+    hi: "पेंशन के लिए कौन से दस्तावेज़ चाहिए?",
+    hinglish: "Pension ke liye kya documents chahiye?",
+  },
 };
 
 // ─── PROVIDER ───────────────────────────────────────────

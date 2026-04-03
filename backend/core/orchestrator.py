@@ -87,14 +87,17 @@ class Orchestrator:
             profile_updates = {}
             query_params = {}
 
-        # ── 3. Update Profile ────────────────────────────────────────────
+        # ── 3. Sanitize & Update Profile ─────────────────────────────────
+        if profile_updates:
+            profile_updates = self._sanitize_profile_updates(profile_updates)
         if profile_updates:
             profile = profile_manager.update_profile(profile, profile_updates)
             await db_client.save_profile(profile)
 
         # ── 4. ALWAYS Run Eligibility (Progressive Feature) ──────────────
-        # This is the core innovation: even with partial data, check eligibility.
-        # Show early suggestions if any scheme matches.
+        # KEY RULE: Only show scheme suggestions once we have MINIMUM CONTEXT
+        # Minimum = at least income OR (age + occupation) known.
+        # This prevents premature suggestions with zero qualifying data.
         system_results = {}
         eligible_schemes = []
         ineligible_schemes = []
@@ -103,8 +106,18 @@ class Orchestrator:
         # Determine category filter
         cat_filter = self._detect_category(profile, message, query_params)
 
-        # Run eligibility on ALL or filtered schemes
-        if intent != "greeting" or profile.occupation or profile.scheme_interest:
+        # We have enough context to run eligibility if:
+        # - income is known, OR
+        # - age is known AND occupation is known, OR
+        # - user explicitly asked about eligibility/scheme
+        has_min_context = (
+            profile.income is not None or
+            (profile.age is not None and profile.occupation is not None) or
+            intent in ["check_eligibility", "ask_about_scheme"]
+        )
+
+        # Run eligibility only if we have minimum context AND not a pure greeting
+        if has_min_context and intent != "greeting":
             schemes = retrieval_engine.search_schemes(
                 query=query_params.get("scheme_name", ""),
                 category=cat_filter
@@ -125,24 +138,27 @@ class Orchestrator:
 
                 if r.eligible and len(r.failed_rules) == 0:
                     if len(r.missing_data) == 0:
+                        # Fully confirmed eligible
                         eligible_schemes.append(scheme_info)
                     else:
+                        # Eligible but missing some data
                         missing_data_schemes.append(scheme_info)
-                elif len(r.passed_rules) > 0 or len(r.missing_data) > 0:
-                    # Has SOME matches or missing data — potentially relevant
-                    if len(r.failed_rules) <= 1:  # Don't show if many hard fails
-                        ineligible_schemes.append(scheme_info)
+                elif len(r.failed_rules) <= 1 and len(r.passed_rules) > 0:
+                    # Close match — only 1 failed rule, has some passes
+                    ineligible_schemes.append(scheme_info)
 
-            # Build top results for LLM context (max 5)
+            # Build top results for LLM context
             top_schemes = []
 
+            # Priority: fully eligible first
             for s in eligible_schemes[:3]:
                 top_schemes.append({**s, "status": "✅ Eligible"})
 
+            # Then probably eligible (missing data only)
             for s in missing_data_schemes[:2]:
                 top_schemes.append({**s, "status": "🔄 Probably Eligible (need more info)"})
 
-            # Only include ineligible if user specifically asked
+            # Only include ineligible if user specifically asked about a scheme
             if intent in ["check_eligibility", "ask_about_scheme"]:
                 for s in ineligible_schemes[:2]:
                     top_schemes.append({**s, "status": "❌ Not Eligible"})
@@ -190,51 +206,63 @@ class Orchestrator:
                 role_label = "Citizen" if h["role"] == "user" else "Samarth"
                 history_text += f"{role_label}: {h['content']}\n"
 
-        # Build smart follow-up questions
-        follow_up_questions = ""
-        if missing_fields_objs and conversation_phase != "detail":
-            follow_up_questions = "Ask ONE of these questions naturally (pick the most relevant):\n"
-            for m in missing_fields_objs[:2]:
-                follow_up_questions += f"  - {m.question}\n"
+        # What is the single MOST IMPORTANT field to ask next?
+        next_question = ""
+        if missing_fields_objs and conversation_phase not in ["detail", "refined_results"]:
+            next_question = missing_fields_objs[0].question  # Only one!
 
-        # Build phase-specific instruction
+        # Phase-specific instruction
         phase_instruction = self._get_phase_instruction(
             conversation_phase, intent, system_results, profile, completeness
         )
 
-        generation_prompt = f"""RECENT CONVERSATION:
-{history_text if history_text else "(First message — citizen just arrived)"}
+        # Eligible scheme summary for easy LLM reference
+        eligible_summary = ""
+        top_schemes = system_results.get("top_schemes", [])
+        fully_eligible = [s for s in top_schemes if "✅" in s.get("status", "")]
+        probably_eligible = [s for s in top_schemes if "🔄" in s.get("status", "")]
 
-CITIZEN'S LATEST MESSAGE: "{message}"
-DETECTED INTENT: {intent}
+        if fully_eligible:
+            eligible_summary = "CONFIRMED ELIGIBLE SCHEMES:\n"
+            for s in fully_eligible:
+                eligible_summary += f"  - {s['scheme_name']}\n"
+        if probably_eligible:
+            eligible_summary += "PROBABLY ELIGIBLE (need more info):\n"
+            for s in probably_eligible:
+                eligible_summary += f"  - {s['scheme_name']} (missing: {', '.join(s.get('missing_data', []))})\n"
 
-CITIZEN'S PROFILE:
-- Name: {profile.name or "Not yet shared"}
-- Age: {profile.age or "Unknown"}
-- Gender: {profile.gender or "Unknown"}
-- Income: {"₹" + str(profile.income) if profile.income else "Unknown"}
-- Category: {profile.category or "Unknown"}
-- Occupation: {profile.occupation or "Unknown"}
-- Farmer Type: {profile.farmer_type or "N/A"}
-- Housing: {profile.housing_status or "Unknown"}
-- Student Class: {profile.student_class or "N/A"}
-- Marital Status: {profile.marital_status or "Unknown"}
-- BPL Card: {"Yes" if profile.has_bpl_card else "No" if profile.has_bpl_card is not None else "Unknown"}
-- Scheme Interest: {profile.scheme_interest or "Not specified"}
+        generation_prompt = f"""CONVERSATION SO FAR:
+{history_text if history_text else "(This is the very first message)"}
 
-PROFILE COMPLETENESS: {completeness['percentage']}% ({completeness['filled']}/{completeness['total']} core fields)
-CONVERSATION PHASE: {conversation_phase}
+USER'S LATEST MESSAGE: "{message}"
+INTENT: {intent}
 
-═══ DETERMINISTIC SYSTEM RESULTS (NEVER contradict these) ═══
-{json.dumps(system_results, indent=2, ensure_ascii=False)}
+USER PROFILE (what we know so far):
+  Name: {profile.name or "unknown"}
+  Age: {profile.age or "unknown"}
+  Gender: {profile.gender or "unknown"}
+  Annual Income: {"Rs. " + str(profile.income) if profile.income else "unknown"}
+  Category: {profile.category or "unknown"}
+  Occupation: {profile.occupation or "unknown"}
+  Farmer Type: {profile.farmer_type or "unknown"}
+  Housing: {profile.housing_status or "unknown"}
+  Student Class: {profile.student_class or "unknown"}
+  Marital Status: {profile.marital_status or "unknown"}
+  BPL Card: {"Yes" if profile.has_bpl_card else "No" if profile.has_bpl_card is not None else "unknown"}
+  Scheme Interest: {profile.scheme_interest or "unknown"}
 
-═══ FOLLOW-UP QUESTIONS ═══
-{follow_up_questions if follow_up_questions else "No specific questions needed right now."}
+PHASE: {conversation_phase}
 
-═══ TASK ═══
+ELIGIBILITY RESULTS (from deterministic engine — NEVER contradict):
+{eligible_summary if eligible_summary else "Not enough data yet to check eligibility."}
+
+NEXT QUESTION TO ASK (ask ONLY this ONE question at the end of your response):
+{next_question if next_question else "No specific question needed — wrap up or ask if they want scheme details."}
+
+INSTRUCTION:
 {phase_instruction}
 
-Generate a natural, warm, WhatsApp-style response. You are a real officer, not a chatbot."""
+Write your response now as Samarth the officer. Hinglish only. Max 5-6 lines. End with exactly 1 question."""
 
         response_text = await llm_client.generate_response(
             prompt=generation_prompt,
@@ -275,6 +303,98 @@ Generate a natural, warm, WhatsApp-style response. You are a real officer, not a
 
     # ── Helper Methods ───────────────────────────────────────────────
 
+    # Allowed values for each profile field (used for validation)
+    VALID_VALUES = {
+        "gender": {"male", "female", "other"},
+        "category": {"sc", "st", "obc", "general", "minority"},
+        "occupation": {"farmer", "fisherman", "student", "artisan", "labourer", "self_employed", "unemployed"},
+        "farmer_type": {"marginal", "small", "large"},
+        "housing_status": {"homeless", "kutcha_house", "pucca_house", "rented", "slum"},
+        "marital_status": {"married", "unmarried", "widow", "divorced"},
+        "scheme_interest": {"housing", "agriculture", "education", "employment", "women", "social_security"},
+    }
+
+    def _sanitize_profile_updates(self, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate extracted profile updates against allowed values.
+        
+        This is a critical safety net: even if the LLM hallucinates
+        (e.g. puts 'Student' in the gender field), we reject it here.
+        """
+        sanitized = {}
+        for key, value in updates.items():
+            if value is None or value == "":
+                continue
+
+            # Type validation
+            if key == "age":
+                try:
+                    age = int(value)
+                    if 0 < age < 150:
+                        sanitized[key] = age
+                    else:
+                        print(f"[Sanitizer] Rejected age={value} (out of range)")
+                except (ValueError, TypeError):
+                    print(f"[Sanitizer] Rejected age={value} (not a number)")
+                continue
+
+            if key == "income":
+                try:
+                    income = int(value)
+                    if income >= 0:
+                        sanitized[key] = income
+                    else:
+                        print(f"[Sanitizer] Rejected income={value} (negative)")
+                except (ValueError, TypeError):
+                    print(f"[Sanitizer] Rejected income={value} (not a number)")
+                continue
+
+            if key == "student_class":
+                try:
+                    sc = int(value)
+                    if 1 <= sc <= 12:
+                        sanitized[key] = sc
+                    else:
+                        print(f"[Sanitizer] Rejected student_class={value} (out of 1-12)")
+                except (ValueError, TypeError):
+                    print(f"[Sanitizer] Rejected student_class={value} (not a number)")
+                continue
+
+            if key == "has_bpl_card":
+                if isinstance(value, bool):
+                    sanitized[key] = value
+                elif isinstance(value, str):
+                    sanitized[key] = value.lower() in ("true", "yes", "1", "haan", "ha")
+                continue
+
+            if key == "name":
+                # Name should be a proper noun, not an occupation
+                occupation_words = {"farmer", "fisherman", "student", "artisan", "labourer", "worker"}
+                if isinstance(value, str) and value.strip().lower() not in occupation_words and len(value.strip()) > 0:
+                    sanitized[key] = value.strip()
+                else:
+                    print(f"[Sanitizer] Rejected name={value} (looks like an occupation, not a name)")
+                continue
+
+            # Enum validation for string fields
+            if key in self.VALID_VALUES:
+                if isinstance(value, str):
+                    normalized = value.strip().lower()
+                    if normalized in self.VALID_VALUES[key]:
+                        # Preserve original casing for category (SC, ST, OBC)
+                        if key == "category":
+                            sanitized[key] = normalized.upper() if normalized in {"sc", "st", "obc"} else normalized.title()
+                        else:
+                            sanitized[key] = normalized
+                    else:
+                        print(f"[Sanitizer] Rejected {key}={value} (not in {self.VALID_VALUES[key]})")
+                continue
+
+            # Pass through any other fields unchanged (e.g. scheme_interest as-is)
+            sanitized[key] = value
+
+        print(f"[Sanitizer] Input: {updates} → Output: {sanitized}")
+        return sanitized
+
     def _detect_category(self, profile: UserProfile, message: str, query_params: Dict) -> Optional[str]:
         """Auto-detect category from profile, message, or query params."""
         if profile.scheme_interest:
@@ -282,7 +402,7 @@ Generate a natural, warm, WhatsApp-style response. You are a real officer, not a
 
         combined_text = f"{message} {str(query_params)}".lower()
         category_keywords = {
-            "agriculture": ["agriculture", "farming", "kisan", "krishi", "fasal", "kheti", "farmer", "khet", "zameen"],
+            "agriculture": ["agriculture", "farming", "kisan", "krishi", "fasal", "kheti", "farmer", "khet", "zameen", "fisherman", "machhli", "machli", "matsya", "machuara", "machhua"],
             "housing": ["housing", "ghar", "awas", "home", "makan", "shelter", "kutcha", "pucca"],
             "education": ["education", "scholarship", "school", "padhai", "student", "class", "vidyalaya", "chatravriti"],
             "women": ["women", "mahila", "ladki", "girl", "maternity", "pregnancy", "kishori", "beti"],
@@ -296,7 +416,7 @@ Generate a natural, warm, WhatsApp-style response. You are a real officer, not a
         # Infer from occupation
         if profile.occupation:
             occ = profile.occupation.lower()
-            if occ == "farmer":
+            if occ in ("farmer", "fisherman"):
                 return "agriculture"
             elif occ == "student":
                 return "education"
@@ -304,104 +424,139 @@ Generate a natural, warm, WhatsApp-style response. You are a real officer, not a
         return None  # Will search all schemes
 
     def _determine_phase(self, profile: UserProfile, completeness: Dict, history_len: int, intent: str) -> str:
-        """Determine conversation phase for response generation."""
+        """Determine conversation phase."""
         if intent == "ask_about_scheme":
             return "detail"
 
         if history_len <= 1:
             return "greeting"
 
-        if completeness["percentage"] < 40:
-            return "early_collection"
+        # We need enough data for refined results
+        # Require: income + at least 2 other fields
+        has_income = profile.income is not None
+        filled = completeness["filled"]
 
-        if completeness["percentage"] < 80:
+        if has_income and filled >= 3:
+            return "refined_results"
+
+        if has_income or filled >= 2:
             return "early_suggestion"
 
-        return "refined_results"
+        return "early_collection"
 
     def _get_phase_instruction(self, phase: str, intent: str, system_results: Dict, profile: UserProfile, completeness: Dict) -> str:
-        """Generate phase-aware instructions for the LLM."""
+        """Generate precise phase-aware instructions for the LLM."""
         top_schemes = system_results.get("top_schemes", [])
+        fully_eligible = [s for s in top_schemes if "✅" in s.get("status", "")]
+        probably_eligible = [s for s in top_schemes if "🔄" in s.get("status", "")]
         eligible_count = system_results.get("total_eligible", 0)
-        maybe_count = system_results.get("total_maybe", 0)
 
         if phase == "greeting":
             return (
-                "This is a greeting or first message. Welcome them warmly with Johar! or Namaste!. "
-                "Ask their name (if unknown). Ask how you can help. "
-                "Keep it SHORT — 2-3 sentences max. Be warm and natural."
+                "GREETING PHASE. "
+                "Say: 'Namaste! Main Samarth hoon 😊' "
+                "Then ask their name AND what type of scheme they want to know about. "
+                "Keep it to 2-3 lines ONLY. Nothing else."
             )
 
         if phase == "early_collection":
-            instruction = "User is sharing info. Acknowledge what they shared warmly."
-            if top_schemes:
-                instruction += (
-                    f"\n\nIMPORTANT — EARLY SUGGESTION: {len(top_schemes)} scheme(s) already match! "
-                    "Show them briefly with name + 1-line benefit. "
-                    "Then say 'Main aur schemes bhi check kar sakta hoon agar aap thodi aur jankari share karein 😊' "
-                    "and ask ONE follow-up question."
-                )
-            else:
-                instruction += (
-                    "\nNo schemes matched yet. Ask the follow-up question naturally "
-                    "to get more data for matching. Keep it conversational."
-                )
-            return instruction
+            # Not enough data for eligibility yet
+            return (
+                "COLLECTING INFO PHASE. "
+                "We don't have enough info to suggest schemes yet. "
+                "Acknowledge what the user just shared (name, occupation, etc.) warmly in 1 line. "
+                "Then naturally ask the ONE next most important question. "
+                "Example: If they said 'main kisaan hoon', say 'Namaste [name] ji 🙏 Achha, kheti se judi madad chahte hain 👍' "
+                "then ask: 'Aapki approx saalana income kitni hai?' "
+                "DO NOT mention any scheme names yet. DO NOT suggest anything yet. Just collect data."
+            )
 
         if phase == "early_suggestion":
-            instruction = "Profile is building up. Acknowledge the new info."
-            if top_schemes:
-                instruction += (
-                    f"\n\nSHOW RESULTS: {eligible_count} eligible + {maybe_count} probable scheme(s). "
-                    "Present them as a numbered list with short descriptions. "
-                    "For eligible ones: '✅ scheme name → benefit' "
-                    "Then ask if they want details on any, or ask one more question to refine."
+            if fully_eligible:
+                scheme = fully_eligible[0]
+                return (
+                    f"EARLY SUGGESTION PHASE. "
+                    f"We found a match! The user is eligible for: {scheme['scheme_name']}. "
+                    f"Start with 'Theek hai 👍' then say: "
+                    f"'Abhi tak ki jankari ke basis par aap **{scheme['scheme_name']}** ke liye eligible lag rahe hain.' "
+                    f"Give 1-line benefit from the scheme data. "
+                    f"Then say: 'Main aapke liye aur schemes bhi check kar sakta hoon 😊' "
+                    f"Then ask the ONE next question to refine further. "
+                    f"Keep it SHORT and natural."
+                )
+            elif probably_eligible:
+                scheme = probably_eligible[0]
+                return (
+                    f"EARLY SUGGESTION PHASE. "
+                    f"We found a probable match: {scheme['scheme_name']} but need more data. "
+                    f"Acknowledge what user shared. "
+                    f"Say something like 'Laga raha hai aap {scheme['scheme_name']} ke liye eligible ho sakte hain' "
+                    f"but clearly state we need more info to confirm. "
+                    f"Ask the ONE next question naturally."
                 )
             else:
-                instruction += "\nNo matching schemes yet. Suggest exploring a category or ask a refining question."
-            return instruction
+                return (
+                    "EARLY SUGGESTION PHASE — no matches yet. "
+                    "Acknowledge what user shared warmly. "
+                    "Say we're checking schemes and need a bit more info. "
+                    "Ask the ONE next question naturally."
+                )
 
         if phase == "refined_results":
-            instruction = "Profile is fairly complete now."
             if top_schemes:
-                instruction += (
-                    f"\n\nFINAL RESULTS: Show clear numbered list of {len(top_schemes)} scheme(s). "
-                    "For each: name, 1-line benefit, eligibility status. "
-                    "Briefly mention key documents needed for eligible ones. "
-                    "Ask 'Kya aap kisi scheme ka poora detail dekhna chahenge?'"
+                scheme_list = ""
+                for i, s in enumerate(top_schemes[:4], 1):
+                    status_icon = "✅" if "✅" in s.get("status", "") else "🔄"
+                    scheme_list += f"{i}. {s['scheme_name']} ({status_icon})\n"
+                return (
+                    f"REFINED RESULTS PHASE. "
+                    f"We now have enough data. Show the final results clearly. "
+                    f"Say: 'Bahut badhiya 👍 ab mujhe clear picture mil gaya hai' "
+                    f"Then show this numbered list:\n{scheme_list}"
+                    f"For each scheme: name + 1-line benefit + arrow (→). "
+                    f"Then explain WHY they qualify in 1 sentence. "
+                    f"List the key documents (Aadhaar, bank, land record etc). "
+                    f"End with: 'Kya aap inme se kisi scheme ka poora detail dekhna chahenge?'"
                 )
             else:
-                instruction += (
-                    "\nNo schemes matched. Be supportive — explain why and suggest "
-                    "what would need to change. Redirect to other categories if possible."
+                return (
+                    "REFINED RESULTS PHASE — no matches found. "
+                    "Be supportive. Explain why no schemes matched. "
+                    "Suggest what could change (income limit, category etc). "
+                    "Redirect: offer to check other categories."
                 )
-            return instruction
 
         if phase == "detail":
             scheme_detail = system_results.get("scheme_detail")
             if scheme_detail:
-                instruction = (
-                    f"User wants details about: {scheme_detail['name']}\n"
-                    f"Hindi name: {scheme_detail.get('name_hindi', '')}\n"
-                    f"Description: {scheme_detail.get('description', '')}\n"
-                    f"Benefits: {json.dumps(scheme_detail.get('benefits', {}), ensure_ascii=False)}\n"
-                    f"Documents: {json.dumps(scheme_detail.get('documents', []), ensure_ascii=False)}\n"
-                    f"How to apply: {json.dumps(scheme_detail.get('application', {}), ensure_ascii=False)}\n"
-                    f"Eligibility status: {scheme_detail.get('eligibility_status', 'Unknown')}\n\n"
-                    "Present this in a clear, readable format:\n"
-                    "1. Benefits clearly\n2. Documents as bullet list\n"
-                    "3. How to apply as numbered steps\n4. Official link if available\n"
-                    "End with 'Kya aur kisi scheme ke baare mein jaanna hai?'"
+                docs = [d.get('name', '') for d in scheme_detail.get('documents', [])[:4]]
+                app_steps = scheme_detail.get('application', {})
+                steps_text = ""
+                if isinstance(app_steps, dict):
+                    online = app_steps.get('online_url', '')
+                    offline = app_steps.get('offline_process', '')
+                    steps_text = f"Online: {online}" if online else f"Offline: {offline}"
+                elif isinstance(app_steps, list):
+                    steps_text = "; ".join(str(s) for s in app_steps[:3])
+
+                return (
+                    f"DETAIL PHASE. User wants full info about: {scheme_detail['name']}. "
+                    f"Start with: 'Zaroor [name] ji 👍' "
+                    f"Then show **{scheme_detail['name']}** as bold heading. "
+                    f"Benefit: {scheme_detail.get('benefits', {})} "
+                    f"Eligibility status: {scheme_detail.get('eligibility_status', '')} "
+                    f"Documents needed: {', '.join(docs)} "
+                    f"How to apply: {steps_text} "
+                    f"End with: 'Agar aap chahein to main aapko step-by-step guide bhi de sakta hoon 😊'"
                 )
             else:
-                instruction = (
-                    "User asked about a specific scheme but we couldn't find it. "
-                    "Politely say you couldn't find that exact name, and offer to help "
-                    "find schemes in their area of interest."
+                return (
+                    "DETAIL PHASE — scheme not found. "
+                    "Politely say you couldn't find that exact scheme. "
+                    "Offer to help find schemes in their area of interest."
                 )
-            return instruction
 
-        return "Respond naturally to the user's message based on the context above."
+        return "Respond naturally to the user's message. Stay in Hinglish character."
 
     def _find_scheme_detail(self, query: str, profile: UserProfile) -> Optional[Dict]:
         """Find a specific scheme and return full details with eligibility status."""

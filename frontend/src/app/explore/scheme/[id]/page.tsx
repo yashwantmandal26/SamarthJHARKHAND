@@ -12,7 +12,8 @@ export default function SchemeDetailPage() {
   const id = params?.id as string;
   const { t, lang } = useLanguage();
   
-  const [scheme, setScheme] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [scheme, setScheme] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,24 +63,34 @@ export default function SchemeDetailPage() {
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-20 page-enter">
       
-      {/* Breadcrumb */}
-      <nav className="mb-8 text-sm font-medium">
-        <ol className="list-none p-0 inline-flex items-center text-slate-400">
-          <li className="flex items-center">
-            <Link href="/explore" className="text-orange-500 hover:text-orange-400">{t('explore.title')}</Link>
-            <span className="mx-2 text-slate-600">/</span>
-          </li>
-          <li className="flex items-center">
-            <Link href={`/explore/${scheme.category}`} className="text-orange-500 hover:text-orange-400 capitalize">
-              {translatedCategory}
-            </Link>
-            <span className="mx-2 text-slate-600">/</span>
-          </li>
-          <li className="text-slate-200 truncate max-w-[200px] sm:max-w-none">
-            {primaryName}
-          </li>
-        </ol>
-      </nav>
+      {/* Back + Breadcrumb */}
+      <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={() => window.history.back()}
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all duration-200 shrink-0 cursor-pointer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <nav className="text-sm font-medium">
+          <ol className="list-none p-0 inline-flex items-center text-slate-400">
+            <li className="flex items-center">
+              <Link href="/explore" className="text-orange-500 hover:text-orange-400">{t('explore.title')}</Link>
+              <span className="mx-2 text-slate-600">/</span>
+            </li>
+            <li className="flex items-center">
+              <Link href={`/explore/${scheme.category}`} className="text-orange-500 hover:text-orange-400 capitalize">
+                {translatedCategory}
+              </Link>
+              <span className="mx-2 text-slate-600">/</span>
+            </li>
+            <li className="text-slate-200 truncate max-w-[200px] sm:max-w-none">
+              {primaryName}
+            </li>
+          </ol>
+        </nav>
+      </div>
 
       {/* Header Banner */}
       <div className="relative glass-card rounded-3xl p-8 sm:p-12 mb-12 overflow-hidden border-orange-500/20">
@@ -115,9 +126,10 @@ export default function SchemeDetailPage() {
                <span className="text-orange-500">🎯</span> {t('detail.eligibility')}
              </h3>
              <ul className="space-y-4">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {Object.entries(scheme.eligibility?.hard_constraints || {}).map(([rule, val]: [string, any]) => {
                    let displayVal = JSON.stringify(val);
-                   let displayRule = rule.replace(/_/g, ' ').toUpperCase();
+                   const displayRule = rule.replace(/_/g, ' ').toUpperCase();
                    
                    if (Array.isArray(val)) displayVal = val.join(', ');
                    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
@@ -143,6 +155,7 @@ export default function SchemeDetailPage() {
                <span className="text-orange-500">📄</span> {t('detail.documents')}
              </h3>
              <ul className="space-y-3">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {scheme.documents_required?.map((doc: any, i: number) => (
                   <li key={i} className="flex items-start gap-4 pb-3 border-b border-slate-800 last:border-0 last:pb-0">
                     <div className="mt-1">

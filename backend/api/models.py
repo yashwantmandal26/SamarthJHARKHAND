@@ -24,3 +24,13 @@ class WhatIfRequest(BaseModel):
     
 class WhatIfResponse(BaseModel):
     simulated_results: List[Dict[str, Any]]
+
+class AIAssistantRequest(BaseModel):
+    session_id: str
+    message: str
+
+class AIAssistantResponse(BaseModel):
+    session_id: str
+    response: str
+    sources: List[Dict[str, Any]]
+    metadata: Dict[str, Any]

@@ -13,6 +13,7 @@ export default function CategorySchemesPage() {
   const category = params?.category as string;
   const { t } = useLanguage();
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,18 +47,28 @@ export default function CategorySchemesPage() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-24 page-enter">
       
-      {/* Breadcrumb */}
-      <nav className="mb-8 text-sm font-medium">
-        <ol className="list-none p-0 inline-flex items-center text-slate-400">
-          <li className="flex items-center">
-            <Link href="/explore" className="hover:text-white transition-colors text-orange-400 hover:text-orange-300">{t('explore.title')}</Link>
-            <span className="mx-2 text-slate-600">/</span>
-          </li>
-          <li className="text-slate-200 capitalize">
-            {displayCategory} {t('explore.title2')}
-          </li>
-        </ol>
-      </nav>
+      {/* Back + Breadcrumb */}
+      <div className="flex items-center gap-4 mb-8">
+        <Link 
+          href="/explore" 
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all duration-200 shrink-0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </Link>
+        <nav className="text-sm font-medium">
+          <ol className="list-none p-0 inline-flex items-center text-slate-400">
+            <li className="flex items-center">
+              <Link href="/explore" className="hover:text-white transition-colors text-orange-400 hover:text-orange-300">{t('explore.title')}</Link>
+              <span className="mx-2 text-slate-600">/</span>
+            </li>
+            <li className="text-slate-200 capitalize">
+              {displayCategory} {t('explore.title2')}
+            </li>
+          </ol>
+        </nav>
+      </div>
 
       <div className="mb-12">
         <h1 className="text-4xl font-bold mb-4 capitalize">{displayCategory} {t('explore.title2')}</h1>

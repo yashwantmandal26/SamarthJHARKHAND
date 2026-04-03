@@ -133,5 +133,12 @@ class Database:
                     history.append({"role": row['role'], "content": row['content']})
         return history
 
+    async def reset_session(self, session_id: str):
+        """Delete all data for a session (profile + chat history)."""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM conversations WHERE session_id = ?", (session_id,))
+            await db.execute("DELETE FROM user_profiles WHERE session_id = ?", (session_id,))
+            await db.commit()
+
 # Global async DB instance
 db_client = Database(settings.DB_PATH)

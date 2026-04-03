@@ -11,6 +11,7 @@ type Scheme = {
   department: string;
   category: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   benefits: any;
   tags: string[];
 };
