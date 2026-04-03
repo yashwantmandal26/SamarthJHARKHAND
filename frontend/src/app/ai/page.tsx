@@ -253,11 +253,18 @@ export default function AIAssistantPage() {
                   ? 'bg-gradient-to-br from-teal-500 to-cyan-600 text-white rounded-br-sm'
                   : 'glass-card border-white/10 rounded-bl-sm text-slate-200'}
               `}>
-                <div className="whitespace-pre-wrap prose prose-invert prose-sm max-w-none 
+                <div className="prose prose-invert prose-sm max-w-none 
                   [&_strong]:text-teal-300 [&_strong]:font-semibold
-                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1
-                  [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1
-                  [&_a]:text-teal-400 [&_a]:underline"
+                  [&_h2]:text-teal-100 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h2]:mb-2
+                  [&_h3]:text-teal-200 [&_h3]:font-bold [&_h3]:text-base [&_h3]:mt-3 [&_h3]:mb-1
+                  [&_h4]:text-teal-300 [&_h4]:font-semibold [&_h4]:text-sm [&_h4]:mt-3 [&_h4]:mb-1
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-2
+                  [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_ol]:my-2
+                  [&_li]:text-slate-200 [&_li]:leading-relaxed
+                  [&_a]:text-teal-400 [&_a]:underline [&_a]:hover:text-teal-300
+                  [&_code]:bg-slate-700/60 [&_code]:text-teal-300 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+                  [&_hr]:border-slate-700/50 [&_hr]:my-3
+                  [&_p]:my-1 [&_p]:leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: formatMarkdown(m.content) }}
                 />
               </div>
@@ -359,15 +366,93 @@ export default function AIAssistantPage() {
   );
 }
 
-// Simple markdown-to-HTML formatter
+// Rich markdown-to-HTML formatter for streaming AI responses
 function formatMarkdown(text: string): string {
-  return text
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Bullet lists
-    .replace(/^[-•]\s(.+)$/gm, '<li>$1</li>')
-    // Numbered lists
-    .replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>')
-    // Line breaks
-    .replace(/\n/g, '<br/>');
+  if (!text) return '';
+  
+  const lines = text.split('\n');
+  const htmlLines: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Headings: ###, ##, #
+    if (/^###\s+(.+)$/.test(line)) {
+      closeLists();
+      htmlLines.push(`<h4 class="text-teal-300 font-semibold text-sm mt-4 mb-1">${applyInline(line.replace(/^###\s+/, ''))}</h4>`);
+      continue;
+    }
+    if (/^##\s+(.+)$/.test(line)) {
+      closeLists();
+      htmlLines.push(`<h3 class="text-teal-200 font-bold text-base mt-4 mb-1">${applyInline(line.replace(/^##\s+/, ''))}</h3>`);
+      continue;
+    }
+    if (/^#\s+(.+)$/.test(line)) {
+      closeLists();
+      htmlLines.push(`<h2 class="text-teal-100 font-bold text-lg mt-4 mb-2">${applyInline(line.replace(/^#\s+/, ''))}</h2>`);
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}\s*$/.test(line)) {
+      closeLists();
+      htmlLines.push('<hr class="border-slate-700/50 my-3"/>');
+      continue;
+    }
+
+    // Numbered list: 1. item, 2. item, etc.
+    const olMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (olMatch) {
+      if (inUl) { htmlLines.push('</ul>'); inUl = false; }
+      if (!inOl) { htmlLines.push('<ol class="list-decimal pl-5 space-y-1.5 my-2">'); inOl = true; }
+      htmlLines.push(`<li class="text-slate-200">${applyInline(olMatch[2])}</li>`);
+      continue;
+    }
+
+    // Bullet list: - item or • item or * item (with optional indentation for nesting)
+    const ulMatch = line.match(/^(\s*)[-•*]\s+(.+)$/);
+    if (ulMatch) {
+      if (inOl) { htmlLines.push('</ol>'); inOl = false; }
+      if (!inUl) { htmlLines.push('<ul class="list-disc pl-5 space-y-1 my-2">'); inUl = true; }
+      const indent = ulMatch[1].length >= 2 ? ' class="ml-4 text-slate-300"' : ' class="text-slate-200"';
+      htmlLines.push(`<li${indent}>${applyInline(ulMatch[2])}</li>`);
+      continue;
+    }
+
+    // Regular line — close any open lists first
+    closeLists();
+
+    // Empty line = paragraph break
+    if (line.trim() === '') {
+      htmlLines.push('<div class="h-2"></div>');
+      continue;
+    }
+
+    // Regular paragraph
+    htmlLines.push(`<p class="my-1">${applyInline(line)}</p>`);
+  }
+
+  closeLists();
+  return htmlLines.join('\n');
+
+  function closeLists() {
+    if (inUl) { htmlLines.push('</ul>'); inUl = false; }
+    if (inOl) { htmlLines.push('</ol>'); inOl = false; }
+  }
+
+  function applyInline(str: string): string {
+    return str
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-teal-300 font-semibold">$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code class="bg-slate-700/60 text-teal-300 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-teal-400 underline hover:text-teal-300">$1</a>')
+      // Arrow →
+      .replace(/→/g, '<span class="text-teal-400">→</span>');
+  }
 }

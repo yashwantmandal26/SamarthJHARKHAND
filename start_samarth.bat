@@ -1,6 +1,17 @@
 @echo off
 title Samarth AI Project Runner
 echo ===================================================
+echo   Cleaning up old Samarth services...
+echo ===================================================
+
+echo Stopping any process on port 8000 (Backend)...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+
+echo Stopping any process on port 3000 (Frontend)...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000" ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+
+echo.
+echo ===================================================
 echo   Starting Samarth AI Project Services...
 echo ===================================================
 
