@@ -26,6 +26,13 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const [sessionId] = useState(() => {
     if (typeof window === 'undefined') return `ai-session-${Math.random().toString(36).substring(2, 9)}`;
@@ -246,9 +253,9 @@ export default function AIAssistantPage() {
           </div>
 
           {messages.map((m) => (
-            <div key={m.id} className={`flex flex-col w-full ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div key={m.id} className={`flex flex-col w-full group/msg ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
               <div className={`
-                max-w-[85%] md:max-w-[80%] p-4 md:p-5 rounded-2xl shadow-lg leading-relaxed text-[15px]
+                relative max-w-[85%] md:max-w-[80%] p-4 md:p-5 rounded-2xl shadow-lg leading-relaxed text-[15px]
                 ${m.role === 'user'
                   ? 'bg-gradient-to-br from-teal-500 to-cyan-600 text-white rounded-br-sm'
                   : 'glass-card border-white/10 rounded-bl-sm text-slate-200'}
@@ -267,6 +274,26 @@ export default function AIAssistantPage() {
                   [&_p]:my-1 [&_p]:leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: formatMarkdown(m.content) }}
                 />
+
+                {/* Copy Button */}
+                <button
+                  onClick={() => handleCopy(m.id, m.content)}
+                  className={`absolute ${m.role === 'user' ? '-left-8 bottom-1' : '-right-8 bottom-1'} 
+                    p-1.5 rounded-lg border border-slate-700/50 bg-slate-800/80 text-slate-400 
+                    opacity-0 group-hover/msg:opacity-100 transition-opacity hover:bg-slate-700 hover:text-teal-400
+                  `}
+                  title="Copy text"
+                >
+                  {copiedId === m.id ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
               </div>
 
               {/* Sources */}
