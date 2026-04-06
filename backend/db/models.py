@@ -28,7 +28,7 @@ class UserProfile(BaseModel):
     occupation: Optional[str] = None     # farmer / student / artisan / labourer / unemployed / self_employed
     farmer_type: Optional[str] = None    # marginal / small / large
     housing_status: Optional[str] = None # homeless / kutcha_house / pucca_house / rented / slum
-    student_class: Optional[int] = None  # 8 / 9 / 10 / 11 / 12 / graduate
+    student_class: Optional[int] = None  # 1-12 for grades, 15 for UG (Bachelors), 17 for PG (Masters)
     district: Optional[str] = None
     education: Optional[str] = None
     marital_status: Optional[str] = None # married / unmarried / widow / divorced

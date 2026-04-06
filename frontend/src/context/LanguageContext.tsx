@@ -456,19 +456,19 @@ const translations: Record<string, Record<Language, string>> = {
     hinglish: "Pure AI Assistant",
   },
   "ai.subtitle": {
-    en: "RAG-powered scheme knowledge engine",
-    hi: "RAG-संचालित योजना ज्ञान इंजन",
-    hinglish: "RAG-powered scheme knowledge engine",
+    en: "Conversational government scheme advisor",
+    hi: "वार्तालाप आधारित सरकारी योजना सलाहकार",
+    hinglish: "Conversational sarkari yojana advisor",
   },
   "ai.badge": {
-    en: "Pure AI Mode — Powered by RAG",
-    hi: "Pure AI मोड — RAG से संचालित",
-    hinglish: "Pure AI Mode — RAG se powered",
+    en: "Samarth AI Advisor",
+    hi: "समर्थ AI सलाहकार",
+    hinglish: "Samarth AI Advisor",
   },
   "ai.welcome": {
-    en: "Namaste! 🙏 I am Samarth's **Pure AI Assistant**.\n\nI can answer any question about Jharkhand government schemes in detail — eligibility rules, benefits, documents, application process, comparisons, and more.\n\nUnlike the Scheme Matcher, I use **RAG (Retrieval Augmented Generation)** to search through my entire scheme knowledge base and give you comprehensive answers.\n\nAsk me anything! For example:\n• \"Compare housing schemes for BPL families\"\n• \"What documents do I need for PM Kisan?\"\n• \"Explain Savitribai Phule scheme benefits\"",
-    hi: "नमस्ते! 🙏 मैं समर्थ का **Pure AI सहायक** हूँ।\n\nमैं झारखंड की सरकारी योजनाओं के बारे में कोई भी सवाल का विस्तार से जवाब दे सकता हूँ — पात्रता नियम, लाभ, दस्तावेज़, आवेदन प्रक्रिया, तुलना, और बहुत कुछ।\n\nScheme Matcher से अलग, मैं **RAG (Retrieval Augmented Generation)** तकनीक का उपयोग करता हूँ।\n\nकुछ भी पूछें! जैसे:\n• \"BPL परिवारों के लिए आवास योजनाओं की तुलना करें\"\n• \"PM किसान के लिए कौन से दस्तावेज़ चाहिए?\"\n• \"सावित्रीबाई फुले योजना के लाभ बताइए\"",
-    hinglish: "Namaste! 🙏 Main Samarth ka **Pure AI Assistant** hoon.\n\nMain Jharkhand ki sarkari yojanaon ke baare mein koi bhi sawaal ka detail mein jawab de sakta hoon — eligibility rules, benefits, documents, application process, comparisons, aur bahut kuch.\n\nScheme Matcher se alag, main **RAG (Retrieval Augmented Generation)** use karta hoon apne scheme knowledge base se comprehensive answers dene ke liye.\n\nKuch bhi pucho! Jaise:\n• \"BPL families ke liye housing schemes compare karo\"\n• \"PM Kisan ke liye kya documents chahiye?\"\n• \"Savitribai Phule scheme ke benefits batao\"",
+    en: "Namaste! 🙏 I am Samarth, your dedicated **Government Scheme Advisor**.\n\nI am here to help you personally with any question about Jharkhand government schemes — from checking your eligibility and understanding benefits, to knowing the right documents and application process.\n\nUnlike an automated system, I can have a real conversation with you to find exactly what you need.\n\nAsk me anything! For example:\n• \"Which housing schemes are available for BPL families?\"\n• \"What documents do I need to prepare for PM Kisan?\"\n• \"Can you explain the Savitribai Phule scheme benefits?\"",
+    hi: "नमस्ते! 🙏 मैं समर्थ हूँ, आपका अपना **सरकारी योजना सलाहकार**।\n\nमैं झारखंड की योजनाओं से जुड़े आपके हर सवाल का जवाब देने के लिए यहाँ हूँ — चाहे वो पात्रता जानना हो, लाभ समझना हो, या आवेदन प्रक्रिया की जानकारी चाहिए।\n\nएक मशीन की तरह नहीं, मैं आपसे बातचीत करके आपके लिए सबसे सही योजना खोज सकता हूँ।\n\nकुछ भी पूछें! जैसे:\n• \"BPL परिवारों के लिए कौन सी आवास योजनाएं हैं?\"\n• \"PM किसान के लिए मुझे कौन से दस्तावेज़ तैयार करने होंगे?\"\n• \"क्या आप सावित्रीबाई फुले योजना के लाभ समझा सकते हैं?\"",
+    hinglish: "Namaste! 🙏 Main Samarth hoon, aapka apna **Sarkari Yojana Advisor**.\n\nMain Jharkhand ki yojanaon se jude aapke har sawaal ka properly jawab dene ke liye yahan hoon — eligibility rules, benefits, documents, aur application process sab samjhaunga.\n\nEk normal system se alag, main aapse human-like conversation karke aapke liye correct schemes dhoondh sakta hoon.\n\nKuch bhi pucho! Jaise:\n• \"BPL families ke liye housing schemes kaun si hain?\"\n• \"PM Kisan form ke liye kya documents ready rakhne honge?\"\n• \"Savitribai Phule scheme ke benefits ache se samjha do?\"",
   },
   "ai.placeholder": {
     en: "Ask anything about Jharkhand schemes...",

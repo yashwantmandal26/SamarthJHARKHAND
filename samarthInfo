@@ -1,0 +1,409 @@
+# Samarth Project - Full Detailed Description
+
+## 1. Project Identity
+Samarth is a hybrid AI + deterministic rule-engine platform designed to help citizens of Jharkhand discover and understand government welfare schemes.
+
+Core identity of the system:
+- Human-like assistant experience in English, Hindi, and Hinglish.
+- Deterministic eligibility logic for trustworthy matching.
+- Retrieval-Augmented AI mode for broad scheme Q&A.
+- End-to-end web application with a Next.js frontend and FastAPI backend.
+
+The product appears to be implemented as a dissertation/research project focused on explainable and practical public-service assistance.
+
+## 2. Problem It Solves
+Citizens often struggle with:
+- Understanding which schemes are relevant to their profile.
+- Interpreting complex eligibility criteria.
+- Knowing what documents are needed.
+- Knowing where and how to apply.
+
+Samarth addresses this by combining:
+- Conversational profile collection.
+- Explicit eligibility checks against structured rule constraints.
+- Guided recommendations and scheme detail pages.
+- Optional pure-AI advisory mode powered by RAG.
+
+## 3. High-Level Architecture
+The project is a monorepo with two major applications:
+
+- Backend service (FastAPI, Python)
+  - Handles business logic, retrieval, rule checks, and AI orchestration.
+  - Stores conversation and user profile session data in SQLite.
+  - Loads scheme knowledge from JSON into memory.
+
+- Frontend application (Next.js App Router, React, TypeScript)
+  - Provides public landing page, deterministic chat UI, AI advisor UI, exploration pages, and scheme details.
+  - Calls backend APIs and renders responses, cards, and source references.
+
+Operationally, the startup batch file launches:
+- Backend on port 8000
+- Frontend on port 3000
+
+## 4. Technology Stack
+### Backend
+- FastAPI 0.115.6
+- Uvicorn 0.34.0
+- Pydantic 2.x models
+- aiosqlite + sqlite3
+- httpx for async HTTP client operations
+- python-dotenv for environment loading
+- LLM support:
+  - Google Gemini via google-generativeai
+  - Ollama local API support
+
+### Frontend
+- Next.js 15.5.x (App Router)
+- React 19
+- TypeScript 5
+- Tailwind CSS 4
+- Custom CSS theme and animation utilities
+
+### Data and persistence
+- Structured scheme dataset in backend/data/schemes.json
+- Session profile and conversation state in backend/samarth.db
+
+## 5. Repository Structure and Role of Key Areas
+### Root
+- start_samarth.bat: one-command launcher for both backend and frontend with port cleanup.
+- test_llm.py and test_out files: likely ad-hoc LLM/output testing artifacts.
+
+### backend/
+- main.py: API app creation, CORS setup, route inclusion, health endpoint.
+- config.py: environment-based typed settings.
+- requirements.txt: backend dependencies.
+
+### backend/api/
+- models.py: request/response contracts for chat, profile updates, what-if simulation, and AI chat.
+- routes.py: all HTTP endpoints and controller flow.
+
+### backend/core/
+Core domain logic modules:
+- orchestrator.py: progressive deterministic chat orchestration.
+- profile_manager.py: profile merge and context-sensitive missing-field questioning.
+- eligibility_engine.py: hard-rule eligibility evaluator.
+- scoring.py: ranking and confidence scoring by pass/fail/missing and soft constraints.
+- retrieval.py: deterministic scheme retrieval by category and keywords.
+- what_if.py: simulation engine with profile overrides.
+- rag_engine.py: BM25-like retrieval over indexed scheme corpus.
+- pure_ai_assistant.py: pure RAG conversational assistant mode.
+- explanation.py: optional LLM-generated explanation for deterministic results.
+- document_guidance.py: reserved/support module in core package.
+
+### backend/db/
+- models.py: Pydantic domain models for schemes, profile, conversations, and eligibility results.
+- database.py: SQLite initialization and async CRUD operations.
+
+### backend/data/
+- loader.py: loads JSON schemes into in-memory index/map.
+- generate_schemes*.py: data generation scripts.
+- schemes.json: scheme source-of-truth used by engines.
+
+### backend/llm/
+- client.py: LLM abstraction and provider factory (Gemini or Ollama).
+- prompts.py: system, extraction, response, and explanation prompts.
+
+### frontend/src/app/
+- page.tsx: landing page with product narrative and CTA.
+- chat/page.tsx: deterministic eligibility assistant UI.
+- ai/page.tsx: RAG AI advisor UI with streamed responses and source chips.
+- explore/page.tsx: category listing.
+- explore/[category]/page.tsx: category-specific scheme list.
+- explore/scheme/[id]/page.tsx: full scheme detail page.
+- layout.tsx + globals.css: global shell, theme, typography, and utility styles.
+
+### frontend/src/components/
+- Navbar.tsx: nav links, language controls, responsive menu.
+- CategoryCard, ExploreSchemeCard, SchemeCard: reusable scheme and category display cards.
+
+### frontend/src/context/
+- LanguageContext.tsx: multilingual dictionary + language state (en/hi/hinglish).
+
+## 6. Backend Functional Design
+## 6.1 Configuration and boot
+The backend loads .env from project root. Important settings include:
+- LLM_PROVIDER (gemini or ollama)
+- Provider model names and endpoints
+- FRONTEND_URL for CORS
+- BACKEND_HOST and BACKEND_PORT
+- SCHEMES_DATA_PATH
+
+On startup:
+- schemes.json is loaded into in-memory objects.
+- SQLite tables are initialized if missing.
+- API router is registered under /api.
+
+Health endpoint:
+- GET /health returns status and number of loaded schemes.
+
+## 6.2 API surface
+Primary endpoints include:
+- POST /api/chat
+  - Deterministic guided chat mode.
+  - Returns assistant response, profile snapshot, evaluated schemes, metadata.
+
+- GET /api/categories
+  - Returns unique categories and counts.
+
+- GET /api/schemes
+  - Returns all schemes, optional category filter.
+
+- GET /api/schemes/{scheme_id}
+  - Returns detailed scheme object.
+
+- GET /api/profile/{session_id}
+  - Returns current profile state for session.
+
+- POST /api/profile/{session_id}
+  - Direct profile patch/update for allowed fields.
+
+- POST /api/whatif
+  - Simulates eligibility under hypothetical profile overrides.
+
+- DELETE /api/session/{session_id}
+  - Clears profile and conversation history for session.
+
+- POST /api/ai-chat
+  - Non-stream pure RAG assistant response.
+
+- POST /api/ai-chat-stream
+  - Streaming RAG assistant via text/event-stream style chunking.
+
+Rate-limit and quota errors from LLM providers are explicitly mapped (notably 429 conditions).
+
+## 6.3 Deterministic chat orchestration pipeline
+The orchestrator is the core differentiator. For each user message, it executes:
+
+1. Session state fetch
+- Load profile and recent chat history.
+
+2. LLM-based intent extraction
+- Uses schema-guided extraction for intent, profile updates, query parameters.
+- Cleans potential markdown wrappers around JSON.
+
+3. Profile sanitization and merge
+- Strict validations for age, income, class range, enums, BPL booleans, and basic name checks.
+- Invalid/hallucinated extracted values are rejected.
+
+4. Progressive eligibility run
+- Eligibility is run once minimum context exists (income OR age+occupation OR explicit eligibility intent).
+- Retrieval narrows candidate schemes.
+- Scoring/ranking classifies into:
+  - Confirmed eligible
+  - Probably eligible (missing info)
+  - Near-match/ineligible context
+
+5. What-if simulation and scheme-detail handling
+- If intent is what_if, applies temporary overrides and re-evaluates.
+- If user asks for a specific scheme, finds best textual match and evaluates that scheme specifically.
+
+6. Smart missing field strategy
+- Selects only top priority missing fields based on user context and scheme interest.
+
+7. Phase-aware response generation
+Conversation phases include:
+- greeting
+- early_collection
+- early_suggestion
+- refined_results
+- detail
+
+LLM gets deterministic result context and explicit instructions to avoid contradiction.
+
+8. Persistence
+- Stores both user and assistant turns into conversation history.
+
+9. Frontend response formatting
+- Returns normalized scheme cards and metadata for UI rendering.
+
+## 6.4 Eligibility engine behavior
+The deterministic eligibility engine checks hard constraints such as:
+- min_age/max_age/age_range
+- income ceiling
+- social category
+- gender
+- occupation
+- farmer_type
+- housing_status
+- student_class
+- marital_status
+- special conditions context
+
+Rule statuses:
+- pass
+- fail
+- missing
+
+Eligibility decision principle:
+- Any fail means ineligible.
+- Missing does not auto-fail; it is treated as potentially eligible pending data.
+
+## 6.5 Scoring and ranking
+Scoring combines:
+- Hard-rule outcomes (pass/fail/missing).
+- Soft constraints (example: BPL weight contributions).
+
+Tiering logic prioritizes:
+- Fully eligible (highest)
+- Missing-data probable matches
+- Ineligible results (lowest)
+
+This creates a practical shortlist while preserving deterministic integrity.
+
+## 6.6 Retrieval modules
+There are two retrieval styles:
+
+A) Deterministic retrieval engine
+- Simple category + keyword match in name, Hindi name, description, tags, department.
+
+B) RAG retrieval engine
+- Builds tokenized index from all scheme fields.
+- Uses BM25-inspired ranking over inverted index.
+- Supports Hindi tokenization range and bilingual stopword filtering.
+- Performs occupation and age compatibility checks for recommendation quality.
+- Builds rich context blocks for the LLM.
+
+## 6.7 Pure AI assistant (RAG mode)
+The pure AI assistant:
+- Extracts lightweight profile details from free text.
+- Updates session profile when detectable.
+- Retrieves top relevant schemes via RAG.
+- In personalization scenarios, re-validates suggestions using deterministic eligibility checks.
+- Streams chunked responses for responsive UX.
+- Emits source cards to the frontend.
+
+Prompt design enforces:
+- Human officer persona.
+- Hinglish style.
+- Mandatory clickable scheme link format in responses:
+  [[Scheme Name ->]](scheme_id)
+
+## 6.8 Database and session model
+SQLite has two main tables:
+- user_profiles: session-level citizen profile fields.
+- conversations: ordered user/assistant message history.
+
+Important persistence properties:
+- Profile upsert on each update.
+- Conversation history fetched in chronological order from latest N messages.
+- Session reset removes both profile and chat history.
+
+## 7. Frontend Functional Design
+## 7.1 UX positioning
+The UI is designed as a modern, high-contrast, glassmorphism-inspired interface with:
+- Distinct color identities for deterministic chat (orange-amber) and AI advisor (teal-cyan).
+- Animated transitions and stagger effects.
+- Mobile and desktop responsive layout behavior.
+
+## 7.2 Main user journeys
+1. Landing page
+- Product overview, value proposition, and CTA.
+
+2. Deterministic assistant (/chat)
+- Session-based conversational interaction.
+- Displays assistant response and eligible/probable scheme cards.
+- Shows live profile completeness in sidebar.
+- Supports aborting in-flight request and new session reset.
+
+3. AI advisor (/ai)
+- Streaming conversational response.
+- Rich markdown-like rendering to HTML.
+- Source chips for retrieved schemes.
+- Supports clickable scheme links parsed from assistant output.
+
+4. Manual exploration (/explore)
+- Category browsing.
+- Scheme card lists by category.
+- Full scheme detail pages with eligibility criteria, documents, benefits, and application steps.
+
+## 7.3 Language system
+LanguageContext manages 3 languages:
+- English
+- Hindi
+- Hinglish
+
+It provides:
+- translation map
+- current language state
+- t(key) helper
+- language label for navbar and controls
+
+## 7.4 AI response rendering and linking
+The AI page contains a custom formatter that:
+- Parses headings, bullets, ordered lists, bold/italic/code.
+- Sanitizes links and scheme IDs.
+- Converts scheme link syntax into internal clickable routes:
+  /explore/scheme/{scheme_id}?from=ai
+
+This enables a guided path from conversation to detailed scheme page.
+
+## 8. Data Model and Scheme Knowledge
+Each scheme object includes:
+- identity and naming (English/Hindi)
+- department and category
+- description
+- eligibility constraints (hard and soft)
+- benefits (amount, type, frequency, descriptive text)
+- required documents with mandatory/conditional metadata
+- application process (online URL and offline steps)
+- tags
+
+Loaded once into memory for fast access and retrieval.
+
+## 9. Runtime Behavior and Local Execution
+The provided batch runner:
+- Kills existing listeners on ports 8000 and 3000.
+- Starts backend using virtualenv Python + uvicorn reload mode.
+- Starts frontend via npm run dev.
+- Opens browser to localhost:3000.
+
+Expected endpoints while running:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- Health: http://localhost:8000/health
+
+## 10. Safety, Trust, and Explainability Patterns
+Trust-oriented design patterns in this codebase:
+- Deterministic hard-rule engine for eligibility decisions.
+- Separation between language generation and rule evaluation.
+- Explicit profile sanitization against allowed enums and ranges.
+- Missing-data handling to avoid false rejection.
+- Explanatory metadata (failed rules, missing fields) for transparent decisions.
+
+Potentially sensitive areas still requiring production hardening:
+- Data-at-rest security and encryption.
+- Session authentication/authorization model.
+- LLM prompt injection hardening in open-input mode.
+- Stricter HTML sanitization strategy for any rendered AI content.
+
+## 11. Product Strengths
+- Strong hybrid architecture: deterministic reliability plus AI usability.
+- Progressive questioning and profile accumulation improve recommendation quality over time.
+- Dual interaction modes: strict eligibility flow and open advisory flow.
+- Useful manual exploration pathway independent of chat.
+- Multilingual UX tuned for regional usage context.
+
+## 12. Observed Constraints and Improvement Opportunities
+Likely current constraints:
+- In-memory and SQLite design suits local/prototype workloads more than large-scale concurrency.
+- Rule coverage depends entirely on quality/completeness of schemes.json.
+- Some heuristics (name extraction, fuzzy matching, tokenizer assumptions) can still misclassify edge cases.
+
+High-value next improvements:
+- Add automated tests for eligibility rules, sanitization, and phase transitions.
+- Add schema/version checks for schemes dataset.
+- Add admin tooling for scheme updates and validation workflows.
+- Add authentication and secure session handling for public deployment.
+- Add observability: structured logs, tracing, and metrics.
+
+## 13. End-to-End Request Flow Summary
+For deterministic mode:
+- User sends message -> intent extraction -> profile update -> retrieval -> rule engine -> ranked outcomes -> phase-based response generation -> persistence -> UI cards.
+
+For RAG mode:
+- User message -> retrieval index query -> relevance filtering -> optional deterministic re-check for personalization -> streamed narrative output + sources -> persistence.
+
+This design intentionally keeps decision correctness anchored in deterministic code while using AI for natural conversation quality.
+
+## 14. Conclusion
+Samarth is a well-structured, hybrid AI government-scheme assistant tailored for Jharkhand. It combines deterministic eligibility evaluation with conversational intelligence and a clean multi-page frontend experience. The architecture clearly prioritizes explainability, local operability, and multilingual accessibility, making it a solid dissertation-grade applied AI system with direct civic utility.

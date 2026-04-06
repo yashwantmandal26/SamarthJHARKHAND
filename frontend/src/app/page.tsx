@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function Home() {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] mt-20 pb-0">

@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional, List
 import json
+import re
 from pydantic import BaseModel
 
 from backend.db.database import db_client
@@ -61,15 +62,8 @@ class Orchestrator:
                 history=[{"role": "user", "content": Prompts.INTENT_EXTRACTION_SYSTEM}],
                 response_schema=IntentExtractionSchema
             )
-            # Clean markdown code blocks
-            cleaned = raw_extraction.strip()
-            for prefix in ["```json", "```"]:
-                if cleaned.startswith(prefix):
-                    cleaned = cleaned[len(prefix):]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
-
-            extraction = json.loads(cleaned.strip())
+            print(f"RAW LLM EXTRACTION: {raw_extraction}")
+            extraction = self._parse_extraction_payload(raw_extraction)
             intent = extraction.get("intent", "general_question")
 
             raw_updates = extraction.get("profile_updates", {})
@@ -277,15 +271,29 @@ Write your response now as Samarth the officer. Hinglish only. Max 5-6 lines. En
         # Build scheme cards for frontend display
         display_schemes = []
         for s in system_results.get("top_schemes", []):
+            failed_rules = s.get("failed_rules", [])
+            missing_rules = s.get("missing_data", [])
+
+            if failed_rules:
+                deterministic_outcome = "fail"
+                display_status = "Ineligible"
+            elif missing_rules:
+                deterministic_outcome = "missing"
+                display_status = "Potentially Eligible"
+            else:
+                deterministic_outcome = "pass"
+                display_status = "Eligible"
+
             display_status = "Eligible" if "✅" in s.get("status", "") else \
                            "Potentially Eligible" if "🔄" in s.get("status", "") else \
-                           "Ineligible (or missing data)"
+                           display_status
             display_schemes.append({
                 "scheme_id": s["scheme_id"],
                 "scheme_name": s["scheme_name"],
                 "status": display_status,
-                "failed_reasons": s.get("failed_rules", []),
-                "missing_data": s.get("missing_data", []),
+                "deterministic_outcome": deterministic_outcome,
+                "failed_reasons": failed_rules,
+                "missing_data": missing_rules,
             })
 
         return {
@@ -313,6 +321,79 @@ Write your response now as Samarth the officer. Hinglish only. Max 5-6 lines. En
         "marital_status": {"married", "unmarried", "widow", "divorced"},
         "scheme_interest": {"housing", "agriculture", "education", "employment", "women", "social_security"},
     }
+
+    def _parse_extraction_payload(self, raw_text: str) -> Dict[str, Any]:
+        """Parse extraction payload safely, ignoring noise outside JSON.
+
+        Handles common model failures like markdown wrappers or prefixed text.
+        """
+        if not raw_text or not isinstance(raw_text, str):
+            raise ValueError("Empty extraction payload")
+
+        json_text = self._extract_json_object(raw_text)
+        extraction = json.loads(json_text)
+
+        if not isinstance(extraction, dict):
+            raise ValueError("Extraction payload is not a JSON object")
+
+        intent = extraction.get("intent", "general_question")
+        if not isinstance(intent, str) or not intent.strip():
+            extraction["intent"] = "general_question"
+
+        if not isinstance(extraction.get("profile_updates"), dict):
+            extraction["profile_updates"] = {}
+
+        if not isinstance(extraction.get("query_parameters"), dict):
+            extraction["query_parameters"] = {}
+
+        return extraction
+
+    def _extract_json_object(self, text: str) -> str:
+        """Extract the first balanced JSON object from arbitrary model output."""
+        cleaned = text.strip()
+
+        # Fast path: entire payload is valid JSON object.
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                return cleaned
+        except Exception:
+            pass
+
+        # Remove markdown fences if present.
+        cleaned = re.sub(r"^```(?:json)?\\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\\s*```$", "", cleaned)
+
+        start = cleaned.find("{")
+        if start == -1:
+            raise ValueError("No JSON object start found in extraction payload")
+
+        depth = 0
+        in_string = False
+        escaped = False
+
+        for i in range(start, len(cleaned)):
+            ch = cleaned[i]
+
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return cleaned[start:i + 1]
+
+        raise ValueError("No complete JSON object found in extraction payload")
 
     def _sanitize_profile_updates(self, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Validate extracted profile updates against allowed values.

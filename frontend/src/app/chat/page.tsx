@@ -10,6 +10,7 @@ type SchemeEval = {
   scheme_id: string;
   scheme_name: string;
   status: string;
+  deterministic_outcome?: 'pass' | 'missing' | 'fail';
   failed_reasons: string[];
   missing_data: string[];
 };
@@ -21,8 +22,61 @@ type Message = {
   schemes?: SchemeEval[];
 };
 
+function normalizeSchemeEvaluations(input: unknown): SchemeEval[] {
+  if (!Array.isArray(input)) return [];
+
+  return input
+    .map((raw): SchemeEval | null => {
+      if (!raw || typeof raw !== 'object') return null;
+      const item = raw as Record<string, unknown>;
+
+      const schemeId = typeof item.scheme_id === 'string' ? item.scheme_id : '';
+      if (!schemeId) return null;
+
+      const failedReasons = Array.isArray(item.failed_reasons)
+        ? item.failed_reasons.filter((v): v is string => typeof v === 'string')
+        : [];
+
+      const missingData = Array.isArray(item.missing_data)
+        ? item.missing_data.filter((v): v is string => typeof v === 'string')
+        : [];
+
+      let deterministicOutcome: 'pass' | 'missing' | 'fail' = 'pass';
+      if (item.deterministic_outcome === 'pass' || item.deterministic_outcome === 'missing' || item.deterministic_outcome === 'fail') {
+        deterministicOutcome = item.deterministic_outcome;
+      } else if (failedReasons.length > 0) {
+        deterministicOutcome = 'fail';
+      } else if (missingData.length > 0) {
+        deterministicOutcome = 'missing';
+      }
+
+      const status = deterministicOutcome === 'pass'
+        ? 'Eligible'
+        : deterministicOutcome === 'missing'
+        ? 'Potentially Eligible'
+        : 'Ineligible';
+
+      return {
+        scheme_id: schemeId,
+        scheme_name: typeof item.scheme_name === 'string' ? item.scheme_name : schemeId,
+        status,
+        deterministic_outcome: deterministicOutcome,
+        failed_reasons: failedReasons,
+        missing_data: missingData,
+      };
+    })
+    .filter((x): x is SchemeEval => x !== null);
+}
+
 export default function ChatPage() {
   const { t, lang } = useLanguage();
+
+  const createSessionId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `session-${crypto.randomUUID()}`;
+    }
+    return `session-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`;
+  }, []);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -36,11 +90,11 @@ export default function ChatPage() {
   };
   
   // Persistent session ID across page reloads
-  const [sessionId] = useState(() => {
+  const [sessionId, setSessionId] = useState(() => {
     if (typeof window === 'undefined') return `session-${Math.random().toString(36).substring(2, 9)}`;
     const stored = localStorage.getItem('samarth_session_id');
     if (stored) return stored;
-    const newId = `session-${Math.random().toString(36).substring(2, 9)}`;
+    const newId = `session-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`;
     localStorage.setItem('samarth_session_id', newId);
     return newId;
   });
@@ -49,8 +103,10 @@ export default function ChatPage() {
   const [profile, setProfile] = useState<Record<string, any>>({});
   
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Global focus listener: typing or pasting anywhere focuses the chat input
   useEffect(() => {
@@ -61,7 +117,7 @@ export default function ChatPage() {
       }
       
       // Auto-focus if user types a printable character or presses Ctrl+V / Cmd+V
-      if (e.key.length === 1 || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v')) {
+      if ((e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v')) {
         inputRef.current?.focus();
       }
     };
@@ -81,8 +137,17 @@ export default function ChatPage() {
   }, [lang]);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    if (!shouldAutoScroll) return;
+    endOfMessagesRef.current?.scrollIntoView({ behavior: loading ? 'auto' : 'smooth' });
+  }, [messages, loading, shouldAutoScroll]);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShouldAutoScroll(distanceFromBottom < 120);
+  }, []);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -90,6 +155,7 @@ export default function ChatPage() {
 
     const userMsg = input;
     setInput('');
+    setShouldAutoScroll(true);
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
     setLoading(true);
 
@@ -117,7 +183,7 @@ export default function ChatPage() {
         id: Date.now().toString() + 'r',
         role: 'assistant',
         content: data.response,
-        schemes: data.schemes_evaluated
+        schemes: normalizeSchemeEvaluations(data.schemes_evaluated)
       }]);
       
       setProfile(data.profile_snapshot || {});
@@ -154,24 +220,36 @@ export default function ChatPage() {
   ];
 
   const handleNewChat = async () => {
-    // Reset the backend session
-    try {
-      await fetch(`${API_URL}/api/session/${sessionId}`, { method: 'DELETE' });
-    } catch {
-      // Ignore errors, just reset locally
+    const oldSessionId = sessionId;
+
+    // Stop any in-flight request before switching session context.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
-    // Generate a new session ID
-    const newId = `session-${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('samarth_session_id', newId);
-    // Reset all state
-    setProfile({});
-    setMessages([{
-      id: 'welcome',
-      role: 'assistant',
-      content: t('chat.welcome')
-    }]);
-    // Reload to pick up new session ID
-    window.location.reload();
+
+    // Try backend cleanup, but never block local reset on failure.
+    try {
+      await fetch(`${API_URL}/api/session/${oldSessionId}`, { method: 'DELETE' });
+    } catch {
+      // Intentionally ignored so UI can always reset to a clean local state.
+    } finally {
+      const freshSessionId = createSessionId();
+      localStorage.setItem('samarth_session_id', freshSessionId);
+      setSessionId(freshSessionId);
+
+      // Reset chat/profile UI state to empty/new-chat defaults.
+      setInput('');
+      setLoading(false);
+      setCopiedId(null);
+      setProfile({});
+      setShouldAutoScroll(true);
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: t('chat.welcome')
+      }]);
+    }
   };
 
   return (
@@ -225,7 +303,11 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col h-full relative max-w-4xl mx-auto w-full border-x border-transparent lg:border-slate-800/50 bg-slate-900/20">
         
         {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 space-y-6">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleMessagesScroll}
+          className="flex-1 overflow-y-auto px-4 md:px-8 py-8 space-y-6"
+        >
           <div className="text-center mb-8">
              <span className="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full border border-slate-700/50">{t('chat.today')}</span>
           </div>
@@ -271,6 +353,7 @@ export default function ChatPage() {
                       schemeId={s.scheme_id} 
                       schemeName={s.scheme_name}
                       status={s.status} 
+                      deterministicOutcome={s.deterministic_outcome}
                       failedReasons={s.failed_reasons}
                       missingData={s.missing_data}
                     />

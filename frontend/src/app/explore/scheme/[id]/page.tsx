@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -9,7 +9,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function SchemeDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params?.id as string;
+  const fromAI = searchParams.get('from') === 'ai';
   const { t, lang } = useLanguage();
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +49,7 @@ export default function SchemeDetailPage() {
     return (
       <div className="flex justify-center items-center h-screen flex-col">
         <h1 className="text-3xl font-bold mb-4">{t('detail.not_found')}</h1>
-        <Link href="/explore" className="text-orange-500 underline">{t('detail.return')}</Link>
+        <Link href={fromAI ? '/ai' : '/explore'} className="text-orange-500 underline">{fromAI ? '← Back to AI Advisor' : t('detail.return')}</Link>
       </div>
     );
   }
@@ -65,26 +67,30 @@ export default function SchemeDetailPage() {
       
       {/* Back + Breadcrumb */}
       <div className="flex items-center gap-4 mb-8">
-        <button 
-          onClick={() => window.history.back()}
+        <Link 
+          href={fromAI ? '/ai' : '/explore'}
           className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all duration-200 shrink-0 cursor-pointer"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-        </button>
+        </Link>
         <nav className="text-sm font-medium">
           <ol className="list-none p-0 inline-flex items-center text-slate-400">
             <li className="flex items-center">
-              <Link href="/explore" className="text-orange-500 hover:text-orange-400">{t('explore.title')}</Link>
-              <span className="mx-2 text-slate-600">/</span>
-            </li>
-            <li className="flex items-center">
-              <Link href={`/explore/${scheme.category}`} className="text-orange-500 hover:text-orange-400 capitalize">
-                {translatedCategory}
+              <Link href={fromAI ? '/ai' : '/explore'} className="text-orange-500 hover:text-orange-400">
+                {fromAI ? '🤖 AI Advisor' : t('explore.title')}
               </Link>
               <span className="mx-2 text-slate-600">/</span>
             </li>
+            {!fromAI && (
+              <li className="flex items-center">
+                <Link href={`/explore/${scheme.category}`} className="text-orange-500 hover:text-orange-400 capitalize">
+                  {translatedCategory}
+                </Link>
+                <span className="mx-2 text-slate-600">/</span>
+              </li>
+            )}
             <li className="text-slate-200 truncate max-w-[200px] sm:max-w-none">
               {primaryName}
             </li>

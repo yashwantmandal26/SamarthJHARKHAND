@@ -3421,6 +3421,7 @@
     "description": "Free hot cooked lunch to all children in government and aided schools (Class 1-8) to improve nutrition and attendance.",
     "eligibility": {
       "hard_constraints": {
+        "max_age": 14,
         "student_class": [
           1,
           2,

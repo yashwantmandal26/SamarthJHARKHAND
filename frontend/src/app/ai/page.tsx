@@ -44,14 +44,16 @@ export default function AIAssistantPage() {
   });
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Auto-focus on keypress
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      if (e.key.length === 1 || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v')) {
+      if ((e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v')) {
         inputRef.current?.focus();
       }
     };
@@ -70,8 +72,17 @@ export default function AIAssistantPage() {
   }, [lang]);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    if (!shouldAutoScroll) return;
+    endOfMessagesRef.current?.scrollIntoView({ behavior: loading ? 'auto' : 'smooth' });
+  }, [messages, loading, shouldAutoScroll]);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShouldAutoScroll(distanceFromBottom < 120);
+  }, []);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -79,6 +90,7 @@ export default function AIAssistantPage() {
 
     const userMsg = input;
     setInput('');
+    setShouldAutoScroll(true);
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
     setLoading(true);
 
@@ -245,7 +257,11 @@ export default function AIAssistantPage() {
       <div className="flex-1 flex flex-col h-full relative max-w-4xl mx-auto w-full border-x border-transparent lg:border-slate-800/50 bg-slate-900/20">
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 space-y-6">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleMessagesScroll}
+          className="flex-1 overflow-y-auto px-4 md:px-8 py-8 space-y-6"
+        >
           <div className="text-center mb-8">
             <span className="bg-teal-900/30 text-teal-400 text-xs px-3 py-1 rounded-full border border-teal-500/20">
               ✨ {t('ai.badge')}
@@ -469,16 +485,49 @@ function formatMarkdown(text: string): string {
     if (inOl) { htmlLines.push('</ol>'); inOl = false; }
   }
 
+  function escapeHtml(input: string): string {
+    return input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeSchemeId(input: string): string {
+    return input.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  }
+
+  function sanitizeExternalUrl(input: string): string {
+    const trimmed = input.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed.replace(/"/g, '%22');
+    }
+    return '#';
+  }
+
   function applyInline(str: string): string {
-    return str
+    const safe = escapeHtml(str);
+    return safe
+      // Scheme card links: [[Scheme Name →]](link_id)
+      .replace(/\[\[(.+?)\]\]\(([^)]+)\)/g, (_, label: string, linkId: string) => {
+        const safeId = sanitizeSchemeId(linkId);
+        if (!safeId) {
+          return label;
+        }
+        return `<a href="/explore/scheme/${safeId}?from=ai" class="inline-flex items-center gap-1.5 text-teal-300 font-semibold hover:text-teal-200 transition-colors no-underline group/link"><span class="underline underline-offset-2 decoration-teal-500/40 group-hover/link:decoration-teal-400">${label}</span><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline-block -mt-0.5 text-teal-400 group-hover/link:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></a>`;
+      })
       // Bold
       .replace(/\*\*(.+?)\*\*/g, '<strong class="text-teal-300 font-semibold">$1</strong>')
       // Italic
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       // Inline code
       .replace(/`([^`]+)`/g, '<code class="bg-slate-700/60 text-teal-300 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-teal-400 underline hover:text-teal-300">$1</a>')
+      // Regular links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, url: string) => {
+        const safeUrl = sanitizeExternalUrl(url);
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-teal-400 underline hover:text-teal-300">${label}</a>`;
+      })
       // Arrow →
       .replace(/→/g, '<span class="text-teal-400">→</span>');
   }

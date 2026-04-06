@@ -8,10 +8,24 @@ for the LLM to answer any user question comprehensively.
 
 import json
 import math
+import re
 from typing import List, Dict, Any, Optional, Tuple
 from collections import Counter
 from backend.data.loader import scheme_db
 from backend.db.models import Scheme
+
+
+TOKEN_REGEX = re.compile(r"[a-zA-Z0-9\u0900-\u097F]+")
+STOPWORDS = {
+    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "will", "would", "could",
+    "should", "may", "might", "shall", "can", "and", "but", "or", "nor",
+    "not", "no", "in", "on", "at", "by", "for", "to", "of", "with",
+    "from", "as", "it", "its", "this", "that", "these", "those",
+    "up", "out", "if", "so", "than", "too", "very",
+    "ke", "ki", "ka", "se", "mein", "hai", "hain", "ko", "par",
+    "aur", "ya", "jo", "ye", "wo", "yeh",
+}
 
 
 class RAGEngine:
@@ -109,20 +123,8 @@ class RAGEngine:
 
     def _tokenize(self, text: str) -> List[str]:
         """Simple tokenizer: lowercase, split on non-alphanumeric, filter stopwords."""
-        import re
-        tokens = re.findall(r'[a-zA-Z0-9\u0900-\u097F]+', text.lower())
-        # Basic stopwords
-        stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-            "have", "has", "had", "do", "does", "did", "will", "would", "could",
-            "should", "may", "might", "shall", "can", "and", "but", "or", "nor",
-            "not", "no", "in", "on", "at", "by", "for", "to", "of", "with",
-            "from", "as", "it", "its", "this", "that", "these", "those",
-            "up", "out", "if", "so", "than", "too", "very",
-            "ke", "ki", "ka", "se", "mein", "hai", "hain", "ko", "par",
-            "aur", "ya", "jo", "ye", "wo", "yeh",
-        }
-        return [t for t in tokens if t not in stopwords and len(t) > 1]
+        tokens = TOKEN_REGEX.findall(text.lower())
+        return [t for t in tokens if t not in STOPWORDS and len(t) > 1]
 
     def _bm25_score(self, query_tokens: List[str], doc_idx: int, k1: float = 1.5, b: float = 0.75) -> float:
         """BM25 scoring for a document against query tokens."""
@@ -190,32 +192,106 @@ class RAGEngine:
         "unemployed": ["unemployed", "berojgar", "berozgar", "jobless"],
     }
 
+    OCCUPATION_KEYWORD_SET = {
+        occupation: {kw.lower() for kw in keywords}
+        for occupation, keywords in OCCUPATION_KEYWORDS.items()
+    }
+
     def _detect_user_occupation(self, query: str) -> str:
         """Detect occupation keywords from the user's query."""
-        query_lower = query.lower()
-        for occupation, keywords in self.OCCUPATION_KEYWORDS.items():
-            for kw in keywords:
-                if kw in query_lower:
-                    return occupation
+        query_tokens = set(self._tokenize(query.lower()))
+        for occupation, keywords in self.OCCUPATION_KEYWORD_SET.items():
+            if query_tokens.intersection(keywords):
+                return occupation
         return ""
 
-    def _classify_scheme_relevance(self, scheme: 'Scheme', user_occupation: str) -> str:
-        """Classify how relevant a scheme is to the user's occupation."""
+    def _extract_user_age(self, text: str) -> Optional[int]:
+        """Extract likely user age from free text like '65 year old' or 'umar 65'."""
+        patterns = [
+            r"\b(i am|i'm|my age is|age|umar|umra|old)\s*(?:about|around)?\s*(\d{1,3})\b",
+            r"\b(\d{1,3})\s*(?:years?\s*old|yrs?\s*old|year|years|yrs?|saal(?:\s*ka)?|saal)\b",
+        ]
+        lowered = text.lower()
+        for pattern in patterns:
+            match = re.search(pattern, lowered)
+            if not match:
+                continue
+            value = int(match.group(match.lastindex or 1))
+            if 1 <= value <= 120:
+                return value
+        return None
+
+    def _is_age_compatible(self, hard_constraints: Dict[str, Any], user_age: Optional[int]) -> Optional[bool]:
+        """Return True/False if age constraints can be evaluated, else None when no age constraints exist."""
+        def normalize_age_bound(raw: Any, bound: str) -> Optional[int]:
+            if raw is None:
+                return None
+            if isinstance(raw, (int, float)):
+                value = int(raw)
+                return value if 0 < value < 130 else None
+            if isinstance(raw, str):
+                match = re.search(r"\d{1,3}", raw)
+                if match:
+                    value = int(match.group(0))
+                    return value if 0 < value < 130 else None
+                return None
+            if isinstance(raw, dict):
+                numeric_values: List[int] = []
+                for v in raw.values():
+                    if isinstance(v, (int, float)):
+                        num = int(v)
+                        if 0 < num < 130:
+                            numeric_values.append(num)
+                if not numeric_values:
+                    return None
+                # For unknown user category/gender in dict-based constraints, keep a safe inclusive bound.
+                return min(numeric_values) if bound == "min" else max(numeric_values)
+            return None
+
+        min_age = normalize_age_bound(hard_constraints.get("min_age"), "min")
+        max_age = normalize_age_bound(hard_constraints.get("max_age"), "max")
+
+        if min_age is None and max_age is None:
+            return None
+        if user_age is None:
+            return None
+
+        if min_age is not None and user_age < min_age:
+            return False
+        if max_age is not None and user_age > max_age:
+            return False
+        return True
+
+    def _classify_scheme_relevance(self, scheme: 'Scheme', user_occupation: str, user_age: Optional[int]) -> str:
+        """Classify relevance based on occupation and age constraints."""
         hard = scheme.eligibility.get("hard_constraints", {})
         scheme_occupations = hard.get("occupation", [])
+        age_compatible = self._is_age_compatible(hard, user_age)
 
-        if not user_occupation:
-            return "RETRIEVED"  # No occupation detected, neutral label
+        if age_compatible is False:
+            min_age = hard.get("min_age")
+            max_age = hard.get("max_age")
+            age_rule = f"{min_age or '-'} to {max_age or '-'}"
+            return f"❌ NOT RELEVANT (age does not match eligibility range: {age_rule})"
 
-        if not scheme_occupations:
-            # No occupation restriction = universal scheme
-            return "⚠️ GENERAL/UNIVERSAL (no occupation restriction — open to all)"
+        if user_occupation:
+            if not scheme_occupations:
+                if age_compatible is True:
+                    return "✅ DIRECTLY RELEVANT (age matches; no occupation restriction)"
+                return "⚠️ GENERAL/UNIVERSAL (no occupation restriction — open to all)"
 
-        # Check if user's occupation is in the scheme's eligible occupations
-        if user_occupation in [o.lower() for o in scheme_occupations]:
-            return "✅ DIRECTLY RELEVANT (occupation matches eligibility)"
-        else:
+            if user_occupation in [o.lower() for o in scheme_occupations]:
+                if age_compatible is True:
+                    return "✅ DIRECTLY RELEVANT (occupation and age match eligibility)"
+                return "✅ DIRECTLY RELEVANT (occupation matches eligibility)"
+
             return f"❌ NOT RELEVANT (requires occupation: {', '.join(scheme_occupations)}, but user is: {user_occupation})"
+
+        if age_compatible is True:
+            return "✅ DIRECTLY RELEVANT (age matches eligibility)"
+        if age_compatible is None and (hard.get("min_age") is not None or hard.get("max_age") is not None):
+            return "⚠️ GENERAL/UNIVERSAL (age-constrained scheme; user age not provided)"
+        return "⚠️ GENERAL/UNIVERSAL (no occupation/age restriction — open to all)"
 
     def build_context(self, query: str, chat_history: List[Dict[str, str]] = None, top_k: int = 5) -> str:
         """Build rich LLM context from retrieved schemes.
@@ -231,6 +307,7 @@ class RAGEngine:
             occupation_text_pool = " ".join(recent_user_msgs + [query])
 
         user_occupation = self._detect_user_occupation(occupation_text_pool)
+        user_age = self._extract_user_age(occupation_text_pool)
 
         # For BM25 retrieval: prioritize current query to prevent context pollution
         bm25_query = query
@@ -262,21 +339,46 @@ class RAGEngine:
                 f"⚡ IMPORTANT: Only recommend schemes marked as ✅ DIRECTLY RELEVANT or ⚠️ GENERAL/UNIVERSAL.\n"
                 f"⚡ Do NOT recommend schemes marked as ❌ NOT RELEVANT.\n"
             )
+        if user_age is not None:
+            context_parts.append(
+                f"⚡ DETECTED USER AGE: {user_age}\n"
+                f"⚡ IMPORTANT: Do NOT recommend schemes where age eligibility does not match this age.\n"
+            )
 
         # Filter out extreme low-scoring noise to save LLM context window/speed
         max_score = max(score for _, score in retrieved) if retrieved else 0
-        min_threshold = max(1.0, max_score * 0.3)
+        min_threshold = max(0.15, max_score * 0.3)
         filtered_retrieved = [(s, sc) for s, sc in retrieved if sc >= min_threshold]
+
+        # Keep the best match when all scores are low but non-zero.
+        if not filtered_retrieved and retrieved:
+            filtered_retrieved = [retrieved[0]]
 
         if not filtered_retrieved:
             return "NO DIRECTLY RELEVANT SCHEMES FOUND."
 
-        for i, (scheme, score) in enumerate(filtered_retrieved, 1):
+        relevant_retrieved: List[Tuple[Scheme, float, str]] = []
+        for scheme, score in filtered_retrieved:
+            relevance_tag = self._classify_scheme_relevance(scheme, user_occupation, user_age)
+            if not relevance_tag.startswith("❌"):
+                relevant_retrieved.append((scheme, score, relevance_tag))
+
+        # If user age is known, prioritize age-targeted schemes to keep recommendations focused.
+        if user_age is not None and relevant_retrieved:
+            age_targeted = []
+            for scheme, score, relevance_tag in relevant_retrieved:
+                hard = scheme.eligibility.get("hard_constraints", {})
+                if hard.get("min_age") is not None or hard.get("max_age") is not None:
+                    age_targeted.append((scheme, score, relevance_tag))
+            if age_targeted:
+                relevant_retrieved = age_targeted
+
+        if not relevant_retrieved:
+            return "NO DIRECTLY RELEVANT SCHEMES FOUND FOR THE USER PROFILE IN THIS QUERY."
+
+        for i, (scheme, score, relevance_tag) in enumerate(relevant_retrieved, 1):
             hard = scheme.eligibility.get("hard_constraints", {})
             benefits = scheme.benefits
-
-            # Classify relevance
-            relevance_tag = self._classify_scheme_relevance(scheme, user_occupation)
 
             # Build eligibility summary
             elig_parts = []
@@ -313,12 +415,10 @@ class RAGEngine:
                     app_info += f"\nSteps: {'; '.join(steps[:3])}"
 
             context_parts.append(f"""--- SCHEME {i}: {scheme.name} ({scheme.name_hindi}) ---
-RELEVANCE: {relevance_tag}
-ID: {scheme.scheme_id}
+LINK_ID: {scheme.scheme_id}
+INTERNAL RELEVANCE TAG: {relevance_tag}
 Department: {scheme.department}
-Category: {scheme.category}
 Description: {scheme.description}
-Relevance Score: {score:.2f}
 
 ELIGIBILITY:
 {chr(10).join('  • ' + e for e in elig_parts) if elig_parts else '  No specific hard constraints.'}

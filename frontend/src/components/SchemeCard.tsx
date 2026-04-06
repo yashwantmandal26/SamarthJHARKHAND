@@ -8,15 +8,28 @@ type SchemeCardProps = {
   schemeId: string;
   schemeName?: string;
   status: 'Eligible' | 'Potentially Eligible' | 'Ineligible' | string;
+  deterministicOutcome?: 'pass' | 'missing' | 'fail';
   failedReasons?: string[];
   missingData?: string[];
 };
 
-export default function SchemeCard({ schemeId, schemeName, status, failedReasons = [], missingData = [] }: SchemeCardProps) {
+export default function SchemeCard({ schemeId, schemeName, status, deterministicOutcome, failedReasons = [], missingData = [] }: SchemeCardProps) {
   const { t } = useLanguage();
-  
-  const isEligible = status === 'Eligible';
-  const isPotential = status === 'Potentially Eligible';
+
+  const resolvedOutcome: 'pass' | 'missing' | 'fail' = deterministicOutcome
+    ? deterministicOutcome
+    : failedReasons.length > 0
+    ? 'fail'
+    : missingData.length > 0
+    ? 'missing'
+    : status === 'Eligible'
+    ? 'pass'
+    : status === 'Potentially Eligible'
+    ? 'missing'
+    : 'fail';
+
+  const isEligible = resolvedOutcome === 'pass';
+  const isPotential = resolvedOutcome === 'missing';
   const isPositive = isEligible || isPotential;
   
   // Format Scheme ID to readable title if name isn't provided
@@ -51,7 +64,7 @@ export default function SchemeCard({ schemeId, schemeName, status, failedReasons
            )}
          </h4>
          <span className={`text-xs px-2 py-1 rounded-full font-medium ${badgeColor}`}>
-           {status}
+           {isEligible ? 'Eligible' : isPotential ? 'Potentially Eligible' : 'Ineligible'}
          </span>
       </div>
       

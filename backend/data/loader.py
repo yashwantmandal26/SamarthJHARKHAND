@@ -6,6 +6,7 @@ from backend.db.models import Scheme
 class SchemeLoader:
     def __init__(self):
         self.schemes: List[Scheme] = []
+        self.scheme_by_id: Dict[str, Scheme] = {}
         self._load_schemes()
 
     def _load_schemes(self):
@@ -15,7 +16,9 @@ class SchemeLoader:
                 with open(settings.SCHEMES_DATA_PATH, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     for item in data:
-                        self.schemes.append(Scheme(**item))
+                        scheme = Scheme(**item)
+                        self.schemes.append(scheme)
+                        self.scheme_by_id[scheme.scheme_id] = scheme
                 print(f"Loaded {len(self.schemes)} schemes successfully.")
             else:
                 print(f"Warning: Schemes data file not found at {settings.SCHEMES_DATA_PATH}")
@@ -26,10 +29,7 @@ class SchemeLoader:
         return self.schemes
         
     def get_scheme_by_id(self, scheme_id: str) -> Scheme | None:
-        for s in self.schemes:
-            if s.scheme_id == scheme_id:
-                return s
-        return None
+        return self.scheme_by_id.get(scheme_id)
 
-# Global instance holding all schemes in memory (only 25 items, fast and efficient)
+# Global instance holding all schemes in memory.
 scheme_db = SchemeLoader()
